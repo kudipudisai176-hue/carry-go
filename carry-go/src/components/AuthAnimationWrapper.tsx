@@ -24,7 +24,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
     }, []);
 
     return (
-        <div className="relative min-h-screen w-full overflow-hidden bg-[#05070a]">
+        <div className="relative min-h-screen w-full overflow-hidden bg-[#0a050f]">
             {/* Journey Background Layer */}
             <div className="absolute inset-0 z-0">
                 <img
@@ -34,8 +34,8 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                 />
 
                 {/* Atmospheric Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#05070a]/80 via-transparent to-[#05070a]" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#05070a]/40 via-transparent to-[#05070a]/40" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0a050f]/80 via-transparent to-[#0a050f]" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0a050f]/40 via-transparent to-[#0a050f]/40" />
 
                 {/* Drifting Clouds */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
@@ -50,7 +50,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                                 ease: "linear",
                                 delay: i * -15
                             }}
-                            className="absolute h-32 w-[500px] bg-blue-400/10 blur-[60px] rounded-full"
+                            className="absolute h-32 w-[500px] bg-purple-400/10 blur-[60px] rounded-full"
                         />
                     ))}
                 </div>
@@ -71,7 +71,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                             opacity: [0.2, 0.5, 0.2]
                         }}
                         transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                        className="absolute inset-0 bg-blue-500/20 blur-[50px] rounded-full translate-x-10"
+                        className="absolute inset-0 bg-purple-500/20 blur-[50px] rounded-full translate-x-10"
                     />
                 </div>
 
@@ -92,7 +92,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                                     ease: "linear",
                                     delay: i * 0.8
                                 }}
-                                className={`h-[1px] w-1/3 bg-gradient-to-r from-transparent via-${i % 2 === 0 ? 'orange' : 'blue'}-500 to-transparent shadow-[0_0_15px_${i % 2 === 0 ? 'rgba(249,115,22,0.5)' : 'rgba(59,130,246,0.5)'}]`}
+                                className={`h-[1px] w-1/3 bg-gradient-to-r from-transparent via-${i % 2 === 0 ? 'orange' : 'purple'}-500 to-transparent shadow-[0_0_15px_${i % 2 === 0 ? 'rgba(249,115,22,0.5)' : 'rgba(168,85,247,0.5)'}]`}
                                 style={{
                                     transform: `translateY(${i * 10}px) rotateX(45deg) skewX(-20deg)`
                                 }}

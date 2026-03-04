@@ -27,7 +27,7 @@ export default function Login() {
 
   return (
     <AuthAnimationWrapper>
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:border-orange-500/30 hover:shadow-orange-500/10">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-purple-500/40 hover:shadow-[0_0_40px_rgba(168,85,247,0.15)] group/card">
         <div className="mb-8 text-center text-white">
           <motion.div
             whileHover={{ rotate: 360, scale: 1.1 }}
@@ -42,7 +42,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="group space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2 font-medium text-slate-300 transition-colors group-hover:text-orange-400">
+            <Label htmlFor="email" className="flex items-center gap-2 font-medium text-slate-300 transition-colors group-hover:text-purple-400">
               <Mail className="h-4 w-4" /> Email address
             </Label>
             <Input
@@ -52,11 +52,11 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20"
+              className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-purple-500/50 focus:ring-purple-500/20"
             />
           </div>
           <div className="group space-y-2">
-            <Label htmlFor="password" className="flex items-center gap-2 font-medium text-slate-300 transition-colors group-hover:text-orange-400">
+            <Label htmlFor="password" className="flex items-center gap-2 font-medium text-slate-300 transition-colors group-hover:text-purple-400">
               <Lock className="h-4 w-4" /> Password
             </Label>
             <Input
@@ -66,7 +66,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20"
+              className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-purple-500/50 focus:ring-purple-500/20"
             />
           </div>
           <motion.div

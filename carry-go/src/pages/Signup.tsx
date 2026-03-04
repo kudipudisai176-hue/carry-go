@@ -39,7 +39,7 @@ export default function Signup() {
 
   return (
     <AuthAnimationWrapper>
-      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:border-orange-500/20">
+      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-purple-500/30 hover:shadow-[0_0_50px_rgba(168,85,247,0.1)]">
         <div className="mb-8 text-center text-white">
           <motion.div
             whileHover={{ rotate: 360, scale: 1.1 }}
@@ -55,7 +55,7 @@ export default function Signup() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="group space-y-2">
-              <Label htmlFor="name" className="flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors group-hover:text-orange-400">
+              <Label htmlFor="name" className="flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors group-hover:text-purple-400">
                 <User className="h-4 w-4" /> Full Name
               </Label>
               <Input
@@ -64,11 +64,11 @@ export default function Signup() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
                 required
-                className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20"
+                className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-purple-500/50 focus:ring-purple-500/20"
               />
             </div>
             <div className="group space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors group-hover:text-orange-400">
+              <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors group-hover:text-purple-400">
                 <Mail className="h-4 w-4" /> Email address
               </Label>
               <Input
@@ -78,12 +78,12 @@ export default function Signup() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20"
+                className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-purple-500/50 focus:ring-purple-500/20"
               />
             </div>
           </div>
           <div className="group space-y-2">
-            <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors group-hover:text-orange-400">
+            <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors group-hover:text-purple-400">
               <Lock className="h-4 w-4" /> Secure Password
             </Label>
             <Input
@@ -93,7 +93,7 @@ export default function Signup() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20"
+              className="border-white/10 bg-black/40 text-white placeholder:text-slate-500 focus:border-purple-500/50 focus:ring-purple-500/20"
             />
           </div>
 
@@ -111,17 +111,17 @@ export default function Signup() {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setRole(r.value)}
                     className={`group relative flex flex-col items-center rounded-2xl border-2 p-4 text-center transition-all ${isSelected
-                        ? "border-orange-500 bg-orange-500/10 shadow-lg shadow-orange-500/10"
-                        : "border-white/5 bg-white/5 hover:border-orange-500/40 hover:bg-white/10"
+                      ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/10"
+                      : "border-white/5 bg-white/5 hover:border-purple-500/40 hover:bg-white/10"
                       }`}
                   >
                     <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition-all ${isSelected
-                        ? "bg-orange-500 text-white"
-                        : "bg-white/5 text-slate-400 group-hover:text-orange-400"
+                      ? "bg-purple-500 text-white"
+                      : "bg-white/5 text-slate-400 group-hover:text-purple-400"
                       }`}>
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className={`text-sm font-bold transition-colors ${isSelected ? "text-orange-400" : "text-slate-300"}`}>
+                    <span className={`text-sm font-bold transition-colors ${isSelected ? "text-purple-400" : "text-slate-300"}`}>
                       {r.label}
                     </span>
                     <span className="mt-1 text-[10px] leading-tight text-slate-500">{r.desc}</span>
