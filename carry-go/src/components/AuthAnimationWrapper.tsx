@@ -32,46 +32,79 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                 <div className="absolute inset-0 bg-gradient-to-b from-[#0a050f]/80 via-transparent to-[#0a050f]" />
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0a050f]/40 via-transparent to-[#0a050f]/40" />
 
-                {/* Drifting Clouds */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
-                    {[...Array(6)].map((_, i) => (
+
+                {/* Star Field */}
+                <div className="absolute inset-0 pointer-events-none">
+                    {[...Array(50)].map((_, i) => (
                         <motion.div
-                            key={`cloud-${i}`}
-                            initial={{ x: "-100%", y: 10 + i * 15 + "%" }}
-                            animate={{ x: "200%" }}
-                            transition={{
-                                duration: 60 + i * 20,
-                                repeat: Infinity,
-                                ease: "linear",
-                                delay: i * -15
+                            key={`star-${i}`}
+                            initial={{
+                                x: Math.random() * 100 + "%",
+                                y: Math.random() * 100 + "%",
+                                opacity: Math.random() * 0.3 + 0.1,
+                                scale: Math.random() * 0.5 + 0.5
                             }}
-                            className="absolute h-32 w-[500px] bg-purple-400/10 blur-[60px] rounded-full"
+                            animate={{
+                                opacity: [0.1, 0.8, 0.1],
+                            }}
+                            transition={{
+                                duration: 2 + Math.random() * 3,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: Math.random() * 5
+                            }}
+                            className="absolute w-0.5 h-0.5 bg-white rounded-full shadow-[0_0_2px_white]"
                         />
                     ))}
                 </div>
 
-                {/* Pulsing City Lights (Simulated via localized glows) */}
-                <div className="absolute top-[40%] right-[15%] w-40 h-40 pointer-events-none">
+                {/* Shooting Stars */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {[...Array(3)].map((_, i) => (
+                        <motion.div
+                            key={`shooting-star-${i}`}
+                            initial={{ x: "-10%", y: Math.random() * 40 + "%", opacity: 0 }}
+                            animate={{
+                                x: ["0%", "150%"],
+                                y: ["inherit", (Math.random() * 100) + "%"],
+                                opacity: [0, 1, 0]
+                            }}
+                            transition={{
+                                duration: 1.5,
+                                repeat: Infinity,
+                                repeatDelay: 5 + Math.random() * 10,
+                                ease: "linear",
+                                delay: i * 4
+                            }}
+                            className="absolute h-[1px] w-20 bg-gradient-to-l from-white to-transparent"
+                        />
+                    ))}
+                </div>
+
+                {/* Nebula Glows */}
+                <div className="absolute inset-0 pointer-events-none">
                     <motion.div
                         animate={{
                             scale: [1, 1.2, 1],
-                            opacity: [0.3, 0.6, 0.3]
+                            rotate: [0, 90, 0],
+                            opacity: [0.2, 0.4, 0.2]
                         }}
-                        transition={{ duration: 4, repeat: Infinity }}
-                        className="absolute inset-0 bg-orange-500/20 blur-[40px] rounded-full"
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        className="absolute -top-1/4 -left-1/4 w-full h-full bg-purple-600/10 blur-[120px] rounded-full"
                     />
                     <motion.div
                         animate={{
-                            scale: [0.8, 1.1, 0.8],
-                            opacity: [0.2, 0.5, 0.2]
+                            scale: [1.2, 1, 1.2],
+                            rotate: [0, -90, 0],
+                            opacity: [0.1, 0.3, 0.1]
                         }}
-                        transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                        className="absolute inset-0 bg-purple-500/20 blur-[50px] rounded-full translate-x-10"
+                        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                        className="absolute -bottom-1/4 -right-1/4 w-full h-full bg-orange-600/10 blur-[120px] rounded-full"
                     />
                 </div>
 
                 {/* Road Light Streaks */}
-                <div className="absolute bottom-[20%] left-0 w-full h-1 pointer-events-none perspective-[1000px]">
+                <div className="absolute bottom-[10%] left-0 w-full h-1 pointer-events-none perspective-[1000px]">
                     <div className="absolute inset-0 flex flex-col gap-4">
                         {[...Array(4)].map((_, i) => (
                             <motion.div
@@ -79,7 +112,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                                 initial={{ x: "-100%", opacity: 0 }}
                                 animate={{
                                     x: "200%",
-                                    opacity: [0, 1, 1, 0]
+                                    opacity: [0, 0.8, 0.8, 0]
                                 }}
                                 transition={{
                                     duration: 3 + i,
