@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import ParticleCanvas from "./ParticleCanvas";
 
 export default function AuthAnimationWrapper({ children }: { children: React.ReactNode }) {
     const [step, setStep] = useState(0);
@@ -100,32 +101,8 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                     </div>
                 </div>
 
-                {/* Glowing Particles (Refined) */}
-                <div className="absolute inset-0 pointer-events-none">
-                    {[...Array(30)].map((_, i) => (
-                        <motion.div
-                            key={`particle-${i}`}
-                            initial={{
-                                x: Math.random() * 100 + "%",
-                                y: Math.random() * 100 + "%",
-                                opacity: 0,
-                                scale: Math.random() * 0.5 + 0.3
-                            }}
-                            animate={{
-                                y: [null, "-10%"],
-                                opacity: [0, 0.4, 0],
-                            }}
-                            transition={{
-                                duration: 15 + Math.random() * 10,
-                                repeat: Infinity,
-                                ease: "linear",
-                                delay: Math.random() * 10
-                            }}
-                            className={`absolute w-1 h-1 rounded-full blur-[1px] ${i % 2 === 0 ? "bg-orange-400/50" : "bg-blue-400/50"
-                                }`}
-                        />
-                    ))}
-                </div>
+                {/* High-performance Particle System */}
+                <ParticleCanvas />
             </div>
 
             <div className="relative z-10 flex min-h-screen items-center justify-center p-4 pt-20">
