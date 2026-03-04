@@ -27,11 +27,6 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
         <div className="relative min-h-screen w-full overflow-hidden bg-[#0a050f]">
             {/* Journey Background Layer */}
             <div className="absolute inset-0 z-0">
-                <img
-                    src="/journey-bg.jpg"
-                    alt="Journey"
-                    className="h-full w-full object-cover brightness-[0.4] contrast-[1.1]"
-                />
 
                 {/* Atmospheric Overlays */}
                 <div className="absolute inset-0 bg-gradient-to-b from-[#0a050f]/80 via-transparent to-[#0a050f]" />
