@@ -35,6 +35,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
 
                 {/* Star Field */}
                 <div className="absolute inset-0 pointer-events-none">
+                    {/* Normal Stars */}
                     {[...Array(50)].map((_, i) => (
                         <motion.div
                             key={`star-${i}`}
@@ -56,6 +57,17 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                             className="absolute w-0.5 h-0.5 bg-white rounded-full shadow-[0_0_2px_white]"
                         />
                     ))}
+
+                    {/* Special Star: Lalitha */}
+                    <motion.div
+                        initial={{ x: "15%", y: "20%", opacity: 0 }}
+                        animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.2, 1] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute flex flex-col items-center gap-1"
+                    >
+                        <div className="w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_white]" />
+                        <span className="text-[10px] font-medium text-white/40 tracking-widest uppercase">Lalitha</span>
+                    </motion.div>
                 </div>
 
                 {/* Shooting Stars */}
