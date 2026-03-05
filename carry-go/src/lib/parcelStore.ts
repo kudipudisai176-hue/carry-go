@@ -1,13 +1,21 @@
-export type ParcelStatus = 'pending' | 'requested' | 'accepted' | 'in-transit' | 'delivered';
+import api from "./api";
+
+export type ParcelStatus = 'pending' | 'requested' | 'accepted' | 'in-transit' | 'delivered' | 'received' | 'completed' | 'cancelled';
 
 export interface Parcel {
   id: string;
+  _id?: string; // MongoDB ID
   senderName: string;
   receiverName: string;
   receiverPhone: string;
   fromLocation: string;
   toLocation: string;
   weight: number;
+  size: 'small' | 'medium' | 'large' | 'very-large';
+  itemCount: number;
+  vehicleType?: string;
+  paymentMethod: 'pay-now' | 'pay-on-delivery';
+  paymentStatus: 'unpaid' | 'paid';
   description: string;
   status: ParcelStatus;
   travellerId?: string;
@@ -15,60 +23,81 @@ export interface Parcel {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'carrygo_parcels';
+// Convert backend parcel to frontend parcel format if needed
+const mapParcel = (p: any): Parcel => ({
+  ...p,
+  id: p._id || p.id,
+  fromLocation: p.pickupLocation?.address || p.fromLocation,
+  toLocation: p.deliveryLocation?.address || p.toLocation,
+});
 
-function getParcels(): Parcel[] {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-function saveParcels(parcels: Parcel[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(parcels));
-}
-
-export function createParcel(parcel: Omit<Parcel, 'id' | 'status' | 'createdAt'>): Parcel {
-  const parcels = getParcels();
-  const newParcel: Parcel = {
-    ...parcel,
-    id: crypto.randomUUID(),
-    status: 'pending',
-    createdAt: new Date().toISOString(),
+export async function createParcel(parcel: Omit<Parcel, 'id' | 'status' | 'createdAt'>): Promise<Parcel> {
+  const backendData = {
+    title: parcel.description.slice(0, 30) || "Parcel",
+    description: parcel.description,
+    weight: parcel.weight,
+    size: parcel.size,
+    itemCount: parcel.itemCount,
+    vehicleType: parcel.vehicleType,
+    pickupLocation: { lat: 0, lng: 0, address: parcel.fromLocation },
+    deliveryLocation: { lat: 0, lng: 0, address: parcel.toLocation },
+    price: parcel.weight * 50 + 20,
+    paymentMethod: parcel.paymentMethod,
+    paymentStatus: parcel.paymentStatus,
+    receiverPhone: parcel.receiverPhone,
+    receiverName: parcel.receiverName,
+    senderName: parcel.senderName
   };
-  parcels.push(newParcel);
-  saveParcels(parcels);
-  return newParcel;
+  const resp = await api.post("/parcel/create-parcel", backendData);
+  return mapParcel(resp.data);
 }
 
-export function getAllParcels(): Parcel[] {
-  return getParcels();
+export async function getAllParcels(): Promise<Parcel[]> {
+  const resp = await api.get("/parcel/my-parcels");
+  return resp.data.map(mapParcel);
 }
 
-export function getParcelsByPhone(phone: string): Parcel[] {
-  return getParcels().filter(p => p.receiverPhone === phone);
+export async function getParcelsByPhone(phone: string): Promise<Parcel[]> {
+  const resp = await api.get(`/parcel/by-phone/${phone}`);
+  return resp.data.map(mapParcel);
 }
 
-export function updateParcelStatus(id: string, status: ParcelStatus, travellerName?: string): Parcel | null {
-  const parcels = getParcels();
-  const idx = parcels.findIndex(p => p.id === id);
-  if (idx === -1) return null;
-  parcels[idx].status = status;
-  if (travellerName) parcels[idx].travellerName = travellerName;
-  saveParcels(parcels);
-  return parcels[idx];
+export async function updateParcelStatus(id: string, status: ParcelStatus, travellerName?: string): Promise<Parcel | null> {
+  let endpoint = "/parcel/update-status";
+  let payload: any = { parcelId: id, status };
+
+  if (status === 'requested') {
+    endpoint = "/parcel/request-parcel";
+    payload = { parcelId: id, travellerName };
+  } else if (status === 'accepted') {
+    endpoint = "/parcel/accept-request";
+    payload = { parcelId: id };
+  }
+
+  const resp = await api.post(endpoint, payload);
+  return mapParcel(resp.data);
 }
 
-export function deleteParcel(id: string): boolean {
-  const parcels = getParcels();
-  const filtered = parcels.filter(p => p.id !== id);
-  if (filtered.length === parcels.length) return false;
-  saveParcels(filtered);
-  return true;
+export async function updateParcelPayment(id: string, status: 'paid' | 'unpaid'): Promise<Parcel | null> {
+  const resp = await api.post("/parcel/update-payment", { parcelId: id, paymentStatus: status });
+  return mapParcel(resp.data);
 }
 
-export function searchParcels(from?: string, to?: string): Parcel[] {
-  return getParcels().filter(p => {
-    const matchFrom = !from || p.fromLocation.toLowerCase().includes(from.toLowerCase());
-    const matchTo = !to || p.toLocation.toLowerCase().includes(to.toLowerCase());
-    return matchFrom && matchTo && (p.status === 'pending' || p.status === 'requested');
-  });
+export async function markReceived(id: string): Promise<Parcel | null> {
+  const resp = await api.post("/parcel/receive-confirm", { parcelId: id });
+  return mapParcel(resp.data);
+}
+
+export async function deleteParcel(id: string): Promise<boolean> {
+  try {
+    await api.delete(`/parcel/${id}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function searchParcels(from?: string, to?: string): Promise<Parcel[]> {
+  const resp = await api.get("/parcel/search", { params: { from, to } });
+  return resp.data.map(mapParcel);
 }

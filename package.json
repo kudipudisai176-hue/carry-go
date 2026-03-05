@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "dev": "npm run dev --prefix carry-go",
+    "start-backend": "npm start --prefix backend",
+    "install-all": "npm install && npm install --prefix carry-go && npm install --prefix backend"
+  },
   "dependencies": {
     "leaflet": "^1.9.4",
     "react-leaflet": "^4.2.1"

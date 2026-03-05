@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import api from "./api";
 
 export type UserRole = "sender" | "traveller" | "receiver";
 
@@ -7,12 +8,25 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  phone: string;
+  vehicleType?: string;
+  token?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string, role: UserRole) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (params: {
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    phone: string,
+    vehicleType?: string,
+    adharNumber?: string,
+    adharPhoto?: string,
+    livePhoto?: string,
+  }) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -35,22 +49,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem("carrygo_user");
   };
 
-  const signup = (name: string, email: string, _password: string, role: UserRole) => {
-    const users: User[] = JSON.parse(localStorage.getItem("carrygo_users") || "[]");
-    if (users.find((u) => u.email === email)) return false;
-    const newUser: User = { id: crypto.randomUUID(), name, email, role };
-    users.push(newUser);
-    localStorage.setItem("carrygo_users", JSON.stringify(users));
-    persist(newUser);
-    return true;
+  const signup = async (params: {
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    phone: string,
+    vehicleType?: string,
+    adharNumber?: string,
+    adharPhoto?: string,
+    livePhoto?: string,
+  }) => {
+    try {
+      const resp = await api.post("/auth/register", params);
+      const data = resp.data;
+      persist({
+        ...data.user,
+        token: data.token
+      });
+      return true;
+    } catch (err) {
+      console.error("Signup error:", err);
+      return false;
+    }
   };
 
-  const login = (email: string, _password: string) => {
-    const users: User[] = JSON.parse(localStorage.getItem("carrygo_users") || "[]");
-    const found = users.find((u) => u.email === email);
-    if (!found) return false;
-    persist(found);
-    return true;
+  const login = async (email: string, password: string) => {
+    try {
+      const resp = await api.post("/auth/login", { email, password });
+      const data = resp.data;
+      persist({
+        ...data.user,
+        token: data.token
+      });
+      return true;
+    } catch (err) {
+      console.error("Login error:", err);
+      return false;
+    }
   };
 
   const logout = () => persist(null);

@@ -5,8 +5,12 @@ const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['sender', 'traveller'], required: true },
+    role: { type: String, enum: ['sender', 'traveller', 'receiver'], required: true },
     phone: { type: String, required: true },
+    vehicleType: { type: String }, // For travellers
+    adharNumber: { type: String }, // For traveller verification
+    adharPhoto: { type: String }, // Base64 or file path
+    livePhoto: { type: String },  // Base64 or file path
     profilePhoto: { type: String },
     rating: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }

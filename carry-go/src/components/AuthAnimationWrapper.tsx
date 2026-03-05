@@ -1,117 +1,113 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import ParticleCanvas from "./ParticleCanvas";
+import { type UserRole } from "@/lib/authContext";
 
-export default function AuthAnimationWrapper({ children }: { children: React.ReactNode }) {
+export default function AuthAnimationWrapper({ children, role }: { children: React.ReactNode; role?: UserRole | null }) {
     const [step, setStep] = useState(0);
 
     useEffect(() => {
-        // Animation sequence:
-        // 0: Boy walking in (1.5s)
-        // 1: Looking left (0.5s)
-        // 2: Looking right (0.5s)
+        // Animation sequence (Bike Edition):
+        // 0: Bike driving in from side (1.8s)
+        // 1: Brake & Skid (0.6s)
+        // 2: Steady & Look (0.6s)
         // 3: Throwing paper (0.8s)
         // 4: Show form (rest)
 
         const timers = [
-            setTimeout(() => setStep(1), 1500),
-            setTimeout(() => setStep(2), 2000),
-            setTimeout(() => setStep(3), 2500),
-            setTimeout(() => setStep(4), 3300),
+            setTimeout(() => setStep(1), 1800),
+            setTimeout(() => setStep(2), 2400),
+            setTimeout(() => setStep(3), 3000),
+            setTimeout(() => setStep(4), 3800),
         ];
 
         return () => timers.forEach(t => clearTimeout(t));
     }, []);
 
     return (
-        <div className="relative min-h-screen w-full overflow-hidden bg-[#0a050f]">
-            {/* Journey Background Layer */}
-            <div className="absolute inset-0 z-0">
+        <motion.div
+            animate={{
+                backgroundColor: role === 'traveller' ? "#f5f3ff" : role === 'receiver' ? "#fffbeb" : "#ffffff"
+            }}
+            className="relative min-h-screen w-full overflow-hidden transition-colors duration-700"
+        >
+            <div className="absolute inset-0 z-0 text-white">
+                {/* Modern Soft Gradients */}
+                <motion.div
+                    animate={{
+                        background: role === 'traveller'
+                            ? "radial-gradient(circle_at_20%_30%, rgba(124, 58, 237, 0.1) 0%, transparent 50%)"
+                            : role === 'receiver'
+                                ? "radial-gradient(circle_at_20%_30%, rgba(253, 224, 71, 0.3) 0%, transparent 50%)"
+                                : "radial-gradient(circle_at_20%_30%, rgba(249, 115, 22, 0.05) 0%, transparent 50%)"
+                    }}
+                    className="absolute top-0 left-0 w-full h-full"
+                />
+                <motion.div
+                    animate={{
+                        background: role === 'traveller'
+                            ? "radial-gradient(circle_at_80%_70%, rgba(139, 92, 246, 0.12) 0%, transparent 50%)"
+                            : role === 'receiver'
+                                ? "radial-gradient(circle_at_80%_70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)"
+                                : "radial-gradient(circle_at_80%_70%, rgba(249, 115, 22, 0.08) 0%, transparent 50%)"
+                    }}
+                    className="absolute bottom-0 right-0 w-full h-full"
+                />
 
-                {/* Atmospheric Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#0a050f]/80 via-transparent to-[#0a050f]" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#0a050f]/40 via-transparent to-[#0a050f]/40" />
+                {/* Mesh Pattern */}
+                <motion.div
+                    animate={{
+                        opacity: role ? 0.04 : 0.02,
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23${role === 'traveller' ? '7c3aed' : role === 'receiver' ? '3b82f6' : 'f97316'}' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6zM36 4V0h-2v4h-4v2h4v4h2V6h4V4h-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                    }}
+                    className="absolute inset-0 transition-opacity duration-700"
+                />
 
 
-                {/* Star Field */}
+                {/* Floating Elements (Light Theme) */}
                 <div className="absolute inset-0 pointer-events-none">
-                    {/* Normal Stars */}
-                    {[...Array(50)].map((_, i) => (
+                    {[...Array(20)].map((_, i) => (
                         <motion.div
-                            key={`star-${i}`}
+                            key={`float-${i}`}
                             initial={{
                                 x: Math.random() * 100 + "%",
                                 y: Math.random() * 100 + "%",
-                                opacity: Math.random() * 0.3 + 0.1,
+                                opacity: Math.random() * 0.2 + 0.1,
                                 scale: Math.random() * 0.5 + 0.5
                             }}
                             animate={{
-                                opacity: [0.1, 0.8, 0.1],
+                                y: ["-10px", "10px", "-10px"],
+                                opacity: [0.1, 0.3, 0.1],
                             }}
                             transition={{
-                                duration: 2 + Math.random() * 3,
+                                duration: 5 + Math.random() * 5,
                                 repeat: Infinity,
                                 ease: "easeInOut",
-                                delay: Math.random() * 5
                             }}
-                            className="absolute w-0.5 h-0.5 bg-white rounded-full shadow-[0_0_2px_white]"
-                        />
-                    ))}
-
-                    {/* Special Star: Lalitha */}
-                    <motion.div
-                        initial={{ x: "15%", y: "20%", opacity: 0 }}
-                        animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.2, 1] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute flex flex-col items-center gap-1"
-                    >
-                        <div className="w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_white]" />
-                        <span className="text-[10px] font-medium text-white/40 tracking-widest uppercase">Lalitha</span>
-                    </motion.div>
-                </div>
-
-                {/* Shooting Stars */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    {[...Array(3)].map((_, i) => (
-                        <motion.div
-                            key={`shooting-star-${i}`}
-                            initial={{ x: "-10%", y: Math.random() * 40 + "%", opacity: 0 }}
-                            animate={{
-                                x: ["0%", "150%"],
-                                y: ["inherit", (Math.random() * 100) + "%"],
-                                opacity: [0, 1, 0]
-                            }}
-                            transition={{
-                                duration: 1.5,
-                                repeat: Infinity,
-                                repeatDelay: 5 + Math.random() * 10,
-                                ease: "linear",
-                                delay: i * 4
-                            }}
-                            className="absolute h-[1px] w-20 bg-gradient-to-l from-white to-transparent"
+                            className={`absolute w-2 h-2 rounded-full blur-[1px] ${role === 'traveller' ? 'bg-purple-200/50' : role === 'receiver' ? 'bg-blue-200/50' : 'bg-orange-200/50'}`}
                         />
                     ))}
                 </div>
 
-                {/* Nebula Glows */}
+                {/* Nebula Glows (Updated for Light Theme) */}
                 <div className="absolute inset-0 pointer-events-none">
                     <motion.div
                         animate={{
-                            scale: [1, 1.2, 1],
-                            rotate: [0, 90, 0],
-                            opacity: [0.2, 0.4, 0.2]
+                            scale: [1, 1.1, 1],
+                            opacity: role ? 0.5 : 0.3,
+                            backgroundColor: role === 'traveller' ? "#ddd6fe" : role === 'receiver' ? "#fef08a" : "#ffedd5"
                         }}
-                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                        className="absolute -top-1/4 -left-1/4 w-full h-full bg-purple-600/10 blur-[120px] rounded-full"
+                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                        className="absolute -top-1/4 -left-1/4 w-full h-full blur-[120px] rounded-full"
                     />
                     <motion.div
                         animate={{
-                            scale: [1.2, 1, 1.2],
-                            rotate: [0, -90, 0],
-                            opacity: [0.1, 0.3, 0.1]
+                            scale: [1.1, 1, 1.1],
+                            opacity: role ? 0.4 : 0.2,
+                            backgroundColor: role === 'traveller' ? "#ede9fe" : role === 'receiver' ? "#bfdbfe" : "#fff7ed"
                         }}
-                        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                        className="absolute -bottom-1/4 -right-1/4 w-full h-full bg-orange-600/10 blur-[120px] rounded-full"
+                        transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+                        className="absolute -bottom-1/4 -right-1/4 w-full h-full blur-[120px] rounded-full"
                     />
                 </div>
 
@@ -132,7 +128,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                                     ease: "linear",
                                     delay: i * 0.8
                                 }}
-                                className={`h-[1px] w-1/3 bg-gradient-to-r from-transparent via-${i % 2 === 0 ? 'orange' : 'purple'}-500 to-transparent shadow-[0_0_15px_${i % 2 === 0 ? 'rgba(249,115,22,0.5)' : 'rgba(168,85,247,0.5)'}]`}
+                                className={`h-[1px] w-1/3 bg-gradient-to-r from-transparent via-${role === 'traveller' ? (i % 2 === 0 ? 'purple' : 'indigo') : (i % 2 === 0 ? 'orange' : 'purple')}-500 to-transparent shadow-[0_0_15px_${role === 'traveller' ? (i % 2 === 0 ? 'rgba(168,85,247,0.5)' : 'rgba(99,102,241,0.5)') : (i % 2 === 0 ? 'rgba(249,115,22,0.5)' : 'rgba(168,85,247,0.5)')}]`}
                                 style={{
                                     transform: `translateY(${i * 10}px) rotateX(45deg) skewX(-20deg)`
                                 }}
@@ -142,77 +138,74 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
                 </div>
 
                 {/* High-performance Particle System */}
-                <ParticleCanvas />
+                <ParticleCanvas role={role} />
+
             </div>
 
             <div className="relative z-10 flex min-h-screen items-center justify-center p-4 pt-20">
-                {/* The Boy Character */}
+                {/* The Bike Character */}
                 {step < 4 && (
                     <motion.div
-                        initial={{ x: "-100vw", opacity: 0 }}
+                        initial={{ x: "-120vw", opacity: 0 }}
                         animate={{
                             x: step === 0 ? "0" : "0",
                             opacity: 1,
-                            transition: { duration: 1.5, ease: "easeOut" }
+                            transition: {
+                                duration: step === 0 ? 1.8 : 0.4,
+                                ease: step === 0 ? [0.23, 1, 0.32, 1] : "easeOut"
+                            }
                         }}
                         className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center"
                     >
-                        {/* 3D Delivery Boy Image with Real Walk Cycle */}
+                        {/* 3D Delivery Bike Image with Dynamic Motion */}
                         <motion.div
                             animate={step === 0 ? {
-                                y: [0, -12, 0, -12, 0],
-                                rotate: [0, 4, -4, 4, 0],
-                                scaleY: [1, 1.03, 0.98, 1.03, 1],
-                                x: [-10, 10, -10, 10, -10]
+                                y: [0, -4, 0, -4, 0],
+                                rotate: [0, 1, -1, 1, 0],
+                            } : step === 1 ? {
+                                x: [0, 10, 0],
+                                rotate: [0, 5, 0],
+                                y: [0, -2, 0]
                             } : {
                                 y: 0,
-                                rotate: step === 1 ? -15 : step === 2 ? 15 : 0,
-                                scaleY: 1,
+                                rotate: 0,
                                 x: 0
                             }}
                             transition={step === 0 ? {
-                                duration: 1.2,
+                                duration: 0.4,
                                 repeat: Infinity,
-                                ease: "easeInOut"
+                                ease: "linear"
                             } : {
-                                duration: 0.4
+                                duration: 0.6,
+                                ease: "easeOut"
                             }}
                             className="relative"
                         >
+                            {/* Shadow */}
                             <motion.div
                                 animate={step === 0 ? {
-                                    scale: [1, 0.8, 1, 0.8, 1],
-                                    opacity: [0.3, 0.15, 0.3, 0.15, 0.3]
+                                    scale: [1, 1.1, 1],
+                                    opacity: [0.3, 0.4, 0.3]
                                 } : { scale: 1, opacity: 0.3 }}
-                                transition={{ duration: 1.2, repeat: Infinity }}
-                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 sm:w-32 h-3 sm:h-4 bg-black/40 blur-xl rounded-full"
+                                transition={{ duration: 0.4, repeat: Infinity }}
+                                className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-32 sm:w-48 h-4 sm:h-6 bg-black/20 blur-2xl rounded-full"
                             />
 
                             <img
-                                src="/delivery-boy.png"
-                                alt="Delivery Boy"
-                                className="w-32 sm:w-48 h-auto drop-shadow-2xl filter brightness-110 relative z-10"
+                                src="/delivery-bike.png"
+                                alt="Delivery Bike"
+                                className="w-48 sm:w-64 h-auto drop-shadow-2xl filter brightness-110 relative z-10"
                             />
 
                             <AnimatePresence>
                                 {step === 1 && (
                                     <motion.div
-                                        initial={{ scale: 0, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
+                                        initial={{ scale: 0, opacity: 0, y: 0 }}
+                                        animate={{ scale: 1, opacity: 1, y: -20 }}
                                         exit={{ scale: 0, opacity: 0 }}
-                                        className="absolute -top-6 -left-6 sm:-top-10 sm:-left-10 bg-white/90 px-3 py-1 rounded-full shadow-lg text-[10px] font-bold text-primary"
+                                        className="absolute -top-10 left-1/2 -translate-x-1/2 bg-orange-500 text-white px-4 py-1.5 rounded-2xl shadow-xl text-[12px] font-black uppercase tracking-tighter italic"
                                     >
-                                        Hmm?
-                                    </motion.div>
-                                )}
-                                {step === 2 && (
-                                    <motion.div
-                                        initial={{ scale: 0, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        exit={{ scale: 0, opacity: 0 }}
-                                        className="absolute -top-6 -right-6 sm:-top-10 sm:-right-10 bg-white/90 px-3 py-1 rounded-full shadow-lg text-[10px] font-bold text-primary"
-                                    >
-                                        Clear!
+                                        Skrrrt!
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -268,13 +261,13 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
             {step === 0 && (
                 <motion.div
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 0.5, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.5 }}
-                    className="absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-medium"
+                    animate={{ opacity: [0, 0.8, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.4 }}
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-orange-600 font-black italic uppercase tracking-widest"
                 >
-                    *step step step*
+                    *vroom vroom*
                 </motion.div>
             )}
-        </div>
+        </motion.div>
     );
 }
