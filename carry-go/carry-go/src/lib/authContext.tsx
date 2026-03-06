@@ -15,7 +15,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; role?: UserRole }>;
+  login: (email: string, password: string) => Promise<boolean>;
   signup: (params: {
     name: string,
     email: string,
@@ -82,10 +82,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...data.user,
         token: data.token
       });
-      return { success: true, role: data.user.role };
+      return true;
     } catch (err) {
       console.error("Login error:", err);
-      return { success: false };
+      return false;
     }
   };
 

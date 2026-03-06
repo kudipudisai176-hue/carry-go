@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LogIn, Package, Mail, Lock, Truck, MapPin } from "lucide-react";
+import { LogIn, Package, Mail, Lock, Truck, Bike, Bus, Car, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,34 +20,17 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    try {
-      // call login with role
-      const success = await login(email, password, role);
-
-      if (success) {
-        toast.success("Welcome back!");
-
-        // navigate based on role
-        if (role === "sender") {
-          navigate("/sender");
-        }
-        else if (role === "traveller") {
-          navigate("/traveller");
-        }
-        else if (role === "receiver") {
-          navigate("/receiver");
-        }
-
-      } else {
-        toast.error("Invalid email or password");
-      }
-
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("Login failed. Please try again.");
+    const success = await login(email, password);
+    if (success) {
+      toast.success("Welcome back!");
+      if (role === 'sender') navigate("/sender");
+      else if (role === 'traveller') navigate("/traveller");
+      else navigate("/receiver");
+    } else {
+      toast.error("Invalid email or password");
     }
   };
+
   return (
     <AuthAnimationWrapper role={role}>
       <div className={`w-full max-w-md rounded-3xl border border-orange-100 bg-white/80 p-8 shadow-2xl backdrop-blur-xl transition-all duration-500 group/card ${role === 'traveller' ? 'hover:border-purple-500/40 hover:shadow-[0_0_40px_rgba(168,85,247,0.1)]' : 'hover:border-orange-500/40 hover:shadow-[0_0_40px_rgba(249,115,22,0.1)]'

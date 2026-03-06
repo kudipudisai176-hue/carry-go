@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Search, PackageCheck, Handshake, CheckCircle2 } from "lucide-react";
+import { MapPin, Search, PackageCheck, Handshake, CheckCircle2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/StatusBadge";
@@ -70,7 +70,16 @@ export default function Receiver() {
               <div>
                 <p className="font-heading font-semibold text-foreground">{p.fromLocation} → {p.toLocation}</p>
                 <p className="text-sm text-muted-foreground">From: {p.senderName} · {p.weight}kg</p>
-                {p.travellerName && <p className="mt-1 text-xs text-secondary">Carried by: {p.travellerName}</p>}
+                {p.travellerName && (
+                  <div className="mt-2 flex items-center gap-4">
+                    <p className="text-xs text-secondary font-medium">Carried by: {p.travellerName}</p>
+                    {p.deliveryOTP && (p.status === 'in-transit' || p.status === 'delivered') && (
+                      <div className="flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-500">
+                        <KeyRound className="h-3 w-3" /> CODE: {p.deliveryOTP}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <StatusBadge status={p.status} />
             </div>

@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Search, Truck, Package, ArrowRight, Bike, Bus, Car, Box, Layers, Weight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Truck, Package, ArrowRight, Bike, Bus, Car, Box, Layers, Weight, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/StatusBadge";
 import RouteMap from "@/components/RouteMap";
-import { searchParcels, updateParcelStatus, type Parcel } from "@/lib/parcelStore";
+import { searchParcels, updateParcelStatus, confirmPickup, confirmDelivery, requestParcel, type Parcel } from "@/lib/parcelStore";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export default function Traveller() {
   const { user } = useAuth();
@@ -15,6 +17,11 @@ export default function Traveller() {
   const [to, setTo] = useState("");
   const [results, setResults] = useState<Parcel[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // OTP States
+  const [otpModal, setOtpModal] = useState<{ id: string, type: 'pickup' | 'delivery' } | null>(null);
+  const [otpValue, setOtpValue] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const handleSearch = async () => {
     try {
@@ -27,26 +34,64 @@ export default function Traveller() {
 
   useEffect(() => { handleSearch(); }, []);
 
-  const handleRequest = async (id: string) => {
-    try {
-      await updateParcelStatus(id, "requested", user?.name || "Traveller");
-      toast.success("Request sent to sender!");
+
+  const handleStartTransit = async (id: string, hasOtp: boolean) => {
+    if (hasOtp) {
+      setOtpModal({ id, type: 'pickup' });
+      setOtpValue("");
+    } else {
+      await updateParcelStatus(id, "in-transit");
+      toast.success("Parcel is now in transit!");
       handleSearch();
-    } catch (err) {
-      toast.error("Failed to send request");
     }
   };
 
-  const handleStartTransit = async (id: string) => {
-    await updateParcelStatus(id, "in-transit");
-    toast.success("Parcel is now in transit!");
-    handleSearch();
+  const handleDeliver = async (id: string, hasOtp: boolean) => {
+    if (hasOtp) {
+      setOtpModal({ id, type: 'delivery' });
+      setOtpValue("");
+    } else {
+      await updateParcelStatus(id, "delivered");
+      toast.success("Parcel delivered! 🎉");
+      handleSearch();
+    }
   };
 
-  const handleDeliver = async (id: string) => {
-    await updateParcelStatus(id, "delivered");
-    toast.success("Parcel delivered! 🎉");
-    handleSearch();
+  const handleOtpSubmit = async () => {
+    if (!otpModal) return;
+    setIsConfirming(true);
+    try {
+      if (otpModal.type === 'pickup') {
+        const res = await confirmPickup(otpModal.id, otpValue);
+        if (res) {
+          toast.success("Pickup confirmed! Now in transit.");
+          setOtpModal(null);
+          handleSearch();
+        }
+      } else {
+        const res = await confirmDelivery(otpModal.id, otpValue);
+        if (res) {
+          toast.success("Delivery confirmed! Great job.");
+          setOtpModal(null);
+          handleSearch();
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Invalid Code");
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  const handleRequest = async (id: string) => {
+    if (!user) return;
+    try {
+      await requestParcel(id, user.name);
+      toast.success("Request sent! Waiting for Sender to approve.");
+      handleSearch();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to send request");
+    }
   };
 
   return (
@@ -121,12 +166,12 @@ export default function Traveller() {
                     </Button>
                   )}
                   {p.status === "accepted" && (
-                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleStartTransit(p.id)}>
+                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleStartTransit(p.id, !!p.pickupOTP)}>
                       Start Transit
                     </Button>
                   )}
                   {p.status === "in-transit" && (
-                    <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" onClick={() => handleDeliver(p.id)}>
+                    <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" onClick={() => handleDeliver(p.id, !!p.deliveryOTP)}>
                       Mark Delivered
                     </Button>
                   )}
@@ -142,6 +187,45 @@ export default function Traveller() {
           ))}
         </div>
       )}
+      <Dialog open={!!otpModal} onOpenChange={(open) => !open && setOtpModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-secondary" />
+              {otpModal?.type === 'pickup' ? "Confirm Pickup" : "Confirm Delivery"}
+            </DialogTitle>
+            <DialogDescription>
+              Please enter the 4-digit code provided by the {otpModal?.type === 'pickup' ? "sender" : "receiver"}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center justify-center py-6">
+            <InputOTP
+              maxLength={4}
+              value={otpValue}
+              onChange={(value) => setOtpValue(value)}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOtpModal(null)}>Cancel</Button>
+            <Button
+              className="bg-secondary text-white hover:bg-secondary/90"
+              onClick={handleOtpSubmit}
+              disabled={otpValue.length < 4 || isConfirming}
+            >
+              {isConfirming ? "Verifying..." : "Confirm Code"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
