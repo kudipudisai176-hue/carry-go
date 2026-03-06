@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Search, PackageCheck } from "lucide-react";
+import { MapPin, Search, PackageCheck, Handshake, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/StatusBadge";
 import RouteMap from "@/components/RouteMap";
-import { getParcelsByPhone, type Parcel } from "@/lib/parcelStore";
+import { getParcelsByPhone, markReceived, type Parcel } from "@/lib/parcelStore";
+import { toast } from "sonner";
 
 export default function Receiver() {
   const [phone, setPhone] = useState("");
@@ -13,10 +14,21 @@ export default function Receiver() {
   const [searched, setSearched] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setParcels(getParcelsByPhone(phone));
-    setSearched(true);
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    try {
+      const data = await getParcelsByPhone(phone);
+      setParcels(data);
+      setSearched(true);
+    } catch (err) {
+      toast.error("Failed to fetch parcels");
+    }
+  };
+
+  const handleReceive = async (id: string) => {
+    await markReceived(id);
+    toast.success("Parcel marked as received! Sender will be notified of payment.");
+    handleSearch();
   };
 
   return (
@@ -65,31 +77,51 @@ export default function Receiver() {
 
             {/* Status Timeline */}
             <div className="mt-4 flex items-center gap-1">
-              {(['pending', 'requested', 'accepted', 'in-transit', 'delivered'] as const).map((s, i) => {
-                const statusOrder = ['pending', 'requested', 'accepted', 'in-transit', 'delivered'];
+              {(['pending', 'requested', 'accepted', 'in-transit', 'delivered', 'received'] as const).map((s, i) => {
+                const statusOrder = ['pending', 'requested', 'accepted', 'in-transit', 'delivered', 'received'];
                 const currentIdx = statusOrder.indexOf(p.status);
                 const isComplete = i <= currentIdx;
                 return (
                   <div key={s} className="flex flex-1 items-center">
-                    <div className={`h-2 w-full rounded-full transition-colors ${isComplete ? 'bg-secondary' : 'bg-muted'}`} />
+                    <div className={`h-2 w-full rounded-full transition-colors ${isComplete ? (p.status === 'received' ? 'bg-indigo-500' : 'bg-secondary') : 'bg-muted'}`} />
                   </div>
                 );
               })}
             </div>
             <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
               <span>Pending</span>
-              <span>Requested</span>
-              <span>Accepted</span>
               <span>In Transit</span>
               <span>Delivered</span>
+              <span>Received</span>
             </div>
 
             {p.status === "delivered" && (
-              <div className="mt-4 flex items-center gap-2 rounded-lg bg-success/10 p-3">
-                <PackageCheck className="h-5 w-5 text-success" />
-                <p className="text-sm font-medium text-success">Your parcel has been delivered!</p>
+              <div className="mt-6 flex flex-col gap-4 rounded-xl border border-success/30 bg-success/5 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/20">
+                    <Handshake className="h-6 w-6 text-success" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-foreground">Parcel is here!</p>
+                    <p className="text-xs text-muted-foreground">Please confirm with the traveller and mark as received.</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => handleReceive(p.id)}
+                  className="w-full bg-success font-bold hover:bg-success/90"
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> Received Delivery
+                </Button>
               </div>
             )}
+
+            {p.status === "received" && (
+              <div className="mt-4 flex items-center gap-2 rounded-lg bg-indigo-500/10 p-3">
+                <PackageCheck className="h-5 w-5 text-indigo-500" />
+                <p className="text-sm font-medium text-indigo-500">Delivery confirmed and received!</p>
+              </div>
+            )}
+
 
             {expanded === p.id && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">

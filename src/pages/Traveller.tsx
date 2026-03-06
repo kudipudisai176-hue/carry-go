@@ -1,39 +1,50 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, Truck, Package, ArrowRight } from "lucide-react";
+import { Search, Truck, Package, ArrowRight, Bike, Bus, Car, Box, Layers, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/StatusBadge";
 import RouteMap from "@/components/RouteMap";
 import { searchParcels, updateParcelStatus, type Parcel } from "@/lib/parcelStore";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/authContext";
 
 export default function Traveller() {
+  const { user } = useAuth();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [results, setResults] = useState<Parcel[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const handleSearch = () => {
-    setResults(searchParcels(from, to));
+  const handleSearch = async () => {
+    try {
+      const data = await searchParcels(from, to);
+      setResults(data);
+    } catch (err) {
+      toast.error("Search failed");
+    }
   };
 
-  useEffect(handleSearch, []);
+  useEffect(() => { handleSearch(); }, []);
 
-  const handleRequest = (id: string) => {
-    updateParcelStatus(id, "requested", "Traveller");
-    toast.success("Request sent to sender!");
-    handleSearch();
+  const handleRequest = async (id: string) => {
+    try {
+      await updateParcelStatus(id, "requested", user?.name || "Traveller");
+      toast.success("Request sent to sender!");
+      handleSearch();
+    } catch (err) {
+      toast.error("Failed to send request");
+    }
   };
 
-  const handleStartTransit = (id: string) => {
-    updateParcelStatus(id, "in-transit");
+  const handleStartTransit = async (id: string) => {
+    await updateParcelStatus(id, "in-transit");
     toast.success("Parcel is now in transit!");
     handleSearch();
   };
 
-  const handleDeliver = (id: string) => {
-    updateParcelStatus(id, "delivered");
+  const handleDeliver = async (id: string) => {
+    await updateParcelStatus(id, "delivered");
     toast.success("Parcel delivered! 🎉");
     handleSearch();
   };
@@ -72,19 +83,35 @@ export default function Traveller() {
               layout
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-border bg-card p-5 shadow-card"
+              className="rounded-xl border border-border bg-card p-5 shadow-card hover:border-secondary/40 transition-colors"
             >
-              <div className="flex items-start justify-between">
-                <div className="cursor-pointer" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
-                  <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="cursor-pointer flex-1" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
+                  <div className="flex items-center gap-2 mb-1">
                     <Package className="h-4 w-4 text-secondary" />
                     <p className="font-heading font-semibold text-foreground">{p.fromLocation}</p>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     <p className="font-heading font-semibold text-foreground">{p.toLocation}</p>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {p.weight}kg · To: {p.receiverName}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-2">
+                    <span className="flex items-center gap-1"><Weight className="h-3 w-3" /> {p.weight}kg</span>
+                    <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {p.itemCount} items</span>
+                    <span>To: {p.receiverName}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {p.vehicleType && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary">
+                        {p.vehicleType === 'bike' && <Bike className="h-3 w-3" />}
+                        {p.vehicleType === 'car' && <Car className="h-3 w-3" />}
+                        {p.vehicleType === 'van' && <Truck className="h-3 w-3" />}
+                        {p.vehicleType === 'bus' && <Bus className="h-3 w-3" />}
+                        {p.vehicleType} Needed
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <Box className="h-3 w-3" /> {p.size}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={p.status} />
