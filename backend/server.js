@@ -14,14 +14,13 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/parcel', require('./routes/parcel'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/parcel', require('./routes/parcelRoutes'));
 app.use('/api/travel', require('./routes/travel'));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/carrygo")
-    .then(() => console.log("MongoDB Connected Successfully"))
-    .catch((err) => console.log("MongoDB Connection Error:", err));
+const connectDB = require('./config/db');
+connectDB();
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

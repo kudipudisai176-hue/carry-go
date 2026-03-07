@@ -2,11 +2,14 @@ const mongoose = require('mongoose');
 
 const parcelSchema = new mongoose.Schema({
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    senderPhone: { type: String },
     travellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     senderName: { type: String },
     receiverName: { type: String },
     receiverPhone: { type: String },
     travellerName: { type: String },
+    travellerPhone: { type: String },
+    pickupOtp: { type: String },
     title: { type: String, required: true },
     description: { type: String, required: true },
     weight: { type: Number, required: true }, // in kg
