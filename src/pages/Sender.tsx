@@ -21,6 +21,7 @@ export default function Sender() {
   const [selected, setSelected] = useState<Parcel | null>(null);
   const [detailModal, setDetailModal] = useState<Parcel | null>(null);
   const [trackingModal, setTrackingModal] = useState<Parcel | null>(null); // auto-opens on transit
+  const [latestCreated, setLatestCreated] = useState<Parcel | null>(null); // auto-opens after creation
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   // New form fields
@@ -112,19 +113,21 @@ export default function Sender() {
     if (paymentMethod === 'pay-now') {
       setCheckoutParcel(parcelData);
     } else {
-      await createParcel(parcelData);
+      const resp = await createParcel(parcelData);
       toast.success("Parcel created with Pay on Delivery!");
+      setLatestCreated(resp);
       resetForm();
     }
   };
 
   const finalizePayment = async () => {
     if (checkoutParcel) {
-      await createParcel({
+      const resp = await createParcel({
         ...checkoutParcel,
         paymentStatus: 'paid'
       });
       toast.success("Payment successful! Parcel created.");
+      setLatestCreated(resp);
       resetForm();
     }
   };
@@ -1117,6 +1120,54 @@ export default function Sender() {
                     <p className="text-sm text-foreground">{trackingModal.description}</p>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Order Success Modal (auto-opens after creation) ── */}
+      <AnimatePresence>
+        {latestCreated && (
+          <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/90 p-4 backdrop-blur-xl" onClick={() => setLatestCreated(null)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-md overflow-hidden rounded-[40px] bg-card border border-border shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-secondary to-indigo-500" />
+
+              <div className="p-8 text-center">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-secondary/10">
+                  <Package className="h-10 w-10 text-secondary" />
+                </div>
+
+                <h2 className="text-2xl font-bold font-heading text-foreground mb-2">Order Confirmed!</h2>
+                <p className="text-muted-foreground mb-8">Your parcel has been listed and is ready for travellers to pick up.</p>
+
+                <div className="space-y-4 text-left mb-8">
+                  <div className="flex justify-between items-center py-3 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">Route</span>
+                    <span className="font-bold text-sm text-foreground">{latestCreated.fromLocation} → {latestCreated.toLocation}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">Parcel Price</span>
+                    <span className="font-bold text-secondary">₹{latestCreated.weight * 50 + 20}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">Receiver</span>
+                    <span className="font-bold text-sm text-foreground">{latestCreated.receiverName} ({latestCreated.receiverPhone})</span>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => setLatestCreated(null)}
+                  className="w-full h-14 rounded-2xl bg-secondary text-white font-bold text-lg hover:scale-[1.02] transition-transform"
+                >
+                  Awesome, Got it!
+                </Button>
               </div>
             </motion.div>
           </div>

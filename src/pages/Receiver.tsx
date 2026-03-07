@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Search, PackageCheck, Handshake, CheckCircle2, KeyRound } from "lucide-react";
+import { MapPin, Search, PackageCheck, Handshake, CheckCircle2, KeyRound, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/StatusBadge";
 import RouteMap from "@/components/RouteMap";
 import { getParcelsByPhone, markReceived, type Parcel } from "@/lib/parcelStore";
 import { toast } from "sonner";
+import { useSocket } from "@/lib/socketContext";
 
 export default function Receiver() {
+  const socket = useSocket();
   const [phone, setPhone] = useState("");
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [searched, setSearched] = useState(false);
@@ -20,10 +22,51 @@ export default function Receiver() {
       const data = await getParcelsByPhone(phone);
       setParcels(data);
       setSearched(true);
+
+      // Join socket room for this phone number
+      if (socket) {
+        socket.emit("join", phone);
+        console.log("Receiver joined room for phone:", phone);
+      }
     } catch (err) {
       toast.error("Failed to fetch parcels");
     }
   };
+
+  const sendBrowserNotification = useCallback((title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    }
+  }, []);
+
+  // Request browser notification permission
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Socket listener for updates
+  useEffect(() => {
+    if (!socket) return;
+    const handler = ({ parcel, status }: { parcel: any; status: string }) => {
+      // Refresh list if it's meant for this phone
+      handleSearch();
+
+      const statusMsgs: Record<string, string> = {
+        'accepted': 'Your parcel has been accepted and is ready for pickup!',
+        'in-transit': '🚚 Your parcel is now in transit!',
+        'delivered': '📦 Your parcel has been delivered! Please confirm receipt.',
+      };
+
+      if (statusMsgs[status]) {
+        toast.info(statusMsgs[status]);
+        sendBrowserNotification('CarryGo Update', statusMsgs[status]);
+      }
+    };
+    socket.on('parcel-status-update', handler);
+    return () => { socket.off('parcel-status-update', handler); };
+  }, [socket, phone, sendBrowserNotification]);
 
   const handleReceive = async (id: string) => {
     await markReceived(id);
