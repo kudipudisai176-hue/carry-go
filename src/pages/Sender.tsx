@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Package, Plus, Check, Trash2, MapPin, Weight, ArrowRight, Sparkles, Box, Bike, Bus, Car, Truck, Info, Layers, CreditCard, QrCode, Smartphone, ExternalLink, X, KeyRound } from "lucide-react";
+import { Package, Plus, Check, Trash2, MapPin, Weight, ArrowRight, Sparkles, Box, Bike, Bus, Car, Truck, Info, Layers, CreditCard, QrCode, Smartphone, ExternalLink, X, KeyRound, Navigation, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,12 +11,16 @@ import RouteMap from "@/components/RouteMap";
 import { createParcel, getAllParcels, updateParcelStatus, deleteParcel, updateParcelPayment, acceptRequest, type Parcel } from "@/lib/parcelStore";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authContext";
+import { useSocket } from "@/lib/socketContext";
 
 export default function Sender() {
   const { user } = useAuth();
+  const socket = useSocket();
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Parcel | null>(null);
+  const [detailModal, setDetailModal] = useState<Parcel | null>(null);
+  const [trackingModal, setTrackingModal] = useState<Parcel | null>(null); // auto-opens on transit
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   // New form fields
@@ -38,6 +42,52 @@ export default function Sender() {
       console.error("Failed to load parcels:", err);
     }
   };
+
+  // Request browser notification permission on load
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const sendBrowserNotification = useCallback((title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    }
+  }, []);
+
+  // Socket: traveller requested parcel
+  useEffect(() => {
+    if (!socket) return;
+    const handler = ({ parcel, travellerName }: { parcel: any; travellerName: string }) => {
+      toast.info(`📦 ${travellerName || 'A traveller'} requested your parcel! Go accept it.`, { duration: 7000 });
+      sendBrowserNotification('CarryGo – New Request! 🚚', `${travellerName} wants to carry your parcel.`);
+      refresh();
+    };
+    socket.on('parcel-requested', handler);
+    return () => { socket.off('parcel-requested', handler); };
+  }, [socket, sendBrowserNotification]);
+
+  // Socket: parcel status changed (in-transit, delivered)
+  useEffect(() => {
+    if (!socket) return;
+    const handler = async ({ parcel, status }: { parcel: any; status: string }) => {
+      await refresh();
+      if (status === 'in-transit') {
+        // Build Parcel object from backend data for modal
+        const fresh = await getAllParcels();
+        const updated = fresh.find(p => p.id === parcel._id?.toString() || p.id === parcel.id);
+        if (updated) setTrackingModal(updated);
+        toast.success(`🚚 Traveller has picked up and started transit!`, { duration: 6000 });
+        sendBrowserNotification('CarryGo – Transit Started! 🚚', 'Your parcel is now in transit. Tracking is live!');
+      } else if (status === 'delivered') {
+        toast.success('🎉 Your parcel has been delivered!');
+        sendBrowserNotification('CarryGo – Delivered! 📦', 'Your parcel has been successfully delivered.');
+      }
+    };
+    socket.on('parcel-status-update', handler);
+    return () => { socket.off('parcel-status-update', handler); };
+  }, [socket, sendBrowserNotification]);
 
   useEffect(() => { refresh(); }, []);
 
@@ -111,9 +161,13 @@ export default function Sender() {
   const recommended = getRecommendedVehicle();
 
   const handleAccept = async (id: string) => {
-    await updateParcelStatus(id, "accepted");
-    toast.success("Traveller request accepted!");
-    refresh();
+    const result = await updateParcelStatus(id, "accepted");
+    toast.success("Traveller request accepted! Share the OTP with them.");
+    await refresh();
+    // Re-fetch the fresh parcel with OTP from backend list
+    const fresh = await getAllParcels();
+    const updated = fresh.find(p => p.id === id);
+    if (updated) setDetailModal(updated);
   };
 
   const handleDelete = async (id: string) => {
@@ -570,7 +624,11 @@ export default function Sender() {
                   size="sm"
                   variant="ghost"
                   className="h-10 text-xs font-bold text-muted-foreground hover:text-secondary hover:bg-secondary/10 px-4 rounded-xl border border-transparent hover:border-secondary/20"
-                  onClick={() => setSelected(p)}
+                  onClick={async () => {
+                    const fresh = await getAllParcels();
+                    const updated = fresh.find(fp => fp.id === p.id);
+                    setDetailModal(updated || p);
+                  }}
                 >
                   Details
                 </Button>
@@ -806,7 +864,23 @@ export default function Sender() {
                               <p className="text-sm font-semibold text-foreground">{p.itemCount} Units · {p.size}</p>
                             </div>
                           </div>
+                          {p.travellerName && (
+                            <div className="rounded-xl border border-border/50 bg-muted/30 p-3 sm:col-span-2">
+                              <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Traveller Info</p>
+                              <div className="flex flex-col">
+                                <p className="text-sm font-semibold text-foreground">{p.travellerName}</p>
+                                {p.travellerPhone && <p className="text-xs font-semibold text-muted-foreground mt-0.5">📞 {p.travellerPhone}</p>}
+                              </div>
+                            </div>
+                          )}
                         </div>
+
+                        {p.status === 'accepted' && p.pickupOtp && (
+                          <div className="mb-4 rounded-xl border-2 border-indigo-500/20 bg-indigo-500/5 p-4 text-center">
+                            <p className="text-xs font-bold text-indigo-600 mb-1 uppercase tracking-wider">Share this OTP with Traveller</p>
+                            <p className="text-4xl font-black text-indigo-600 tracking-[0.3em] font-mono">{p.pickupOtp}</p>
+                          </div>
+                        )}
                         {p.description && (
                           <p className="mb-3 text-sm text-muted-foreground">{p.description}</p>
                         )}
@@ -890,6 +964,164 @@ export default function Sender() {
         )}
       </AnimatePresence>
 
+      {/* ── Traveller Detail Modal ── */}
+      <AnimatePresence>
+        {detailModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md" onClick={() => setDetailModal(null)}>
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="relative w-full max-w-md overflow-hidden rounded-3xl bg-card border border-secondary/20 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-secondary/90 to-secondary p-6 text-white">
+                <motion.div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 3, repeat: Infinity }} />
+                <button onClick={() => setDetailModal(null)} className="absolute right-4 top-4 rounded-full bg-white/10 p-1.5 hover:bg-white/20">
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-inner">
+                    <Truck className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-70">Assigned Traveller</p>
+                    <h2 className="text-xl font-bold">{detailModal.travellerName || "Traveller"}</h2>
+                    {detailModal.travellerPhone && (
+                      <a href={`tel:${detailModal.travellerPhone}`} className="mt-1 flex items-center gap-1.5 text-sm opacity-80 hover:opacity-100">
+                        <span>📞</span> {detailModal.travellerPhone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Body */}
+              <div className="p-6 space-y-4">
+
+                {/* Parcel Route */}
+                <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Parcel Route</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 text-center">
+                      <p className="text-xs text-muted-foreground">From</p>
+                      <p className="font-bold text-foreground">{detailModal.fromLocation}</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-secondary shrink-0" />
+                    <div className="flex-1 text-center">
+                      <p className="text-xs text-muted-foreground">To</p>
+                      <p className="font-bold text-foreground">{detailModal.toLocation}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* OTP Box */}
+                {detailModal.pickupOtp && (
+                  <div className="rounded-2xl border-2 border-indigo-400/30 bg-indigo-500/5 p-5 text-center">
+                    <p className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2">🔐 Share OTP with Traveller to Confirm Pickup</p>
+                    <motion.p
+                      className="text-5xl font-black text-indigo-600 tracking-[0.4em] font-mono"
+                      animate={{ opacity: [1, 0.7, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      {detailModal.pickupOtp}
+                    </motion.p>
+                    <p className="mt-2 text-[10px] text-indigo-400/70 font-medium">Only share this with your assigned traveller</p>
+                  </div>
+                )}
+
+                {/* Receiver Info */}
+                <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Receiver Info</p>
+                  <p className="font-bold text-foreground">{detailModal.receiverName}</p>
+                  <p className="text-sm text-muted-foreground">{detailModal.receiverPhone}</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Live Tracking Modal (auto-opens on transit start) ── */}
+      <AnimatePresence>
+        {trackingModal && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md" onClick={() => setTrackingModal(null)}>
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 30 }}
+              transition={{ type: "spring", stiffness: 280, damping: 24 }}
+              className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-card border border-secondary/20 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-green-500 to-emerald-600 p-6 text-white">
+                <motion.div
+                  className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10"
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
+                />
+                <button onClick={() => setTrackingModal(null)} className="absolute right-4 top-4 rounded-full bg-white/10 p-1.5 hover:bg-white/20">
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-inner">
+                    <Navigation className="h-7 w-7 animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-70">🔴 Live Tracking</p>
+                    <h2 className="text-xl font-bold">Parcel In Transit!</h2>
+                    <p className="text-sm opacity-80">{trackingModal.fromLocation} → {trackingModal.toLocation}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Route Map */}
+              <div className="px-6 pt-5">
+                <RouteMap from={trackingModal.fromLocation} to={trackingModal.toLocation} animate={true} />
+              </div>
+
+              {/* Order Details Grid */}
+              <div className="p-6 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Traveller</p>
+                    <p className="font-bold text-sm text-foreground">{trackingModal.travellerName || "—"}</p>
+                    {trackingModal.travellerPhone && (
+                      <a href={`tel:${trackingModal.travellerPhone}`} className="text-xs text-secondary hover:underline">📞 {trackingModal.travellerPhone}</a>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Receiver</p>
+                    <p className="font-bold text-sm text-foreground">{trackingModal.receiverName}</p>
+                    <p className="text-xs text-muted-foreground">{trackingModal.receiverPhone}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Weight</p>
+                    <p className="font-bold text-sm text-foreground">{trackingModal.weight} kg</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Status</p>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-bold text-green-600">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                      In Transit
+                    </span>
+                  </div>
+                </div>
+
+                {trackingModal.description && (
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Description</p>
+                    <p className="text-sm text-foreground">{trackingModal.description}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

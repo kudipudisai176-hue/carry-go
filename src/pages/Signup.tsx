@@ -27,7 +27,7 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState<UserRole>("sender");
   const [vehicle, setVehicle] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [adharNumber, setAdharNumber] = useState("");

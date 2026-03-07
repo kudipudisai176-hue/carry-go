@@ -68,8 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token: data.token
       });
       return true;
-    } catch (err) {
-      console.error("Signup error:", err);
+    } catch (err: any) {
+      console.error("Signup error:", err.response?.data || err.message);
       return false;
     }
   };
@@ -83,8 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token: data.token
       });
       return true;
-    } catch (err) {
-      console.error("Login error:", err);
+    } catch (err: any) {
+      console.error("Login error:", err.response?.data || err.message);
       return false;
     }
   };

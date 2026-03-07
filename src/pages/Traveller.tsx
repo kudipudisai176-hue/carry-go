@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Truck, Package, ArrowRight, Bike, Bus, Car, Box, Layers, Weight,
   Phone, User, MapPin, CheckCircle2, Navigation, ChevronDown, ChevronUp,
-  PackageCheck, Info
+  PackageCheck, Info, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,14 @@ import {
 } from "@/lib/parcelStore";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authContext";
+import { useSocket } from "@/lib/socketContext";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from "@/components/ui/dialog";
 
 export default function Traveller() {
   const { user } = useAuth();
+  const socket = useSocket();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [results, setResults] = useState<Parcel[]>([]);
@@ -29,12 +31,54 @@ export default function Traveller() {
   const [activeTab, setActiveTab] = useState<"deliveries" | "search">("deliveries");
 
   const [isConfirming, setIsConfirming] = useState(false);
+  const [pickupOtp, setPickupOtp] = useState("");
+  const [trackingParcel, setTrackingParcel] = useState<Parcel | null>(null); // auto-opens after OTP
 
   // Navigation map state: shows full-screen map after OTP confirmed
   const [navParcel, setNavParcel] = useState<Parcel | null>(null);
 
   // Dedicated detail view for accepted/processing parcels
   const [detailParcel, setDetailParcel] = useState<Parcel | null>(null);
+
+  // Request browser notification permission
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const sendBrowserNotification = useCallback((title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    }
+  }, []);
+
+  // Socket listener — parcel accepted by sender
+  useEffect(() => {
+    if (!socket) return;
+    const handler = ({ parcel }: { parcel: any; otp: string }) => {
+      toast.success(`✅ Sender accepted your request! Check your deliveries.`, { duration: 6000 });
+      sendBrowserNotification('CarryGo – Request Accepted! 🎉', `Your request for parcel has been accepted. OTP is ready.`);
+      loadMyDeliveries();
+      setActiveTab('deliveries');
+    };
+    socket.on('parcel-accepted', handler);
+    return () => { socket.off('parcel-accepted', handler); };
+  }, [socket, sendBrowserNotification]);
+
+  // Socket listener — status updates (e.g. delivered)
+  useEffect(() => {
+    if (!socket) return;
+    const handler = ({ parcel, status }: { parcel: any; status: string }) => {
+      loadMyDeliveries();
+      if (status === 'delivered') {
+        toast.success('📦 Delivery confirmed! Great job!');
+        sendBrowserNotification('CarryGo – Delivery Complete! 🎉', 'You have successfully delivered the parcel.');
+      }
+    };
+    socket.on('parcel-status-update', handler);
+    return () => { socket.off('parcel-status-update', handler); };
+  }, [socket, sendBrowserNotification]);
 
   const loadMyDeliveries = async () => {
     try {
@@ -73,13 +117,20 @@ export default function Traveller() {
   };
 
   const handleStartTransit = async (id: string, parcel: Parcel) => {
+    if (!pickupOtp || pickupOtp.length !== 4) {
+      toast.error("Please enter the 4-digit OTP provided by the Sender");
+      return;
+    }
     setIsConfirming(true);
     try {
-      const res = await updateParcelStatus(id, "in-transit");
+      const res = await updateParcelStatus(id, "in-transit", undefined, pickupOtp);
       if (res) {
-        toast.success("Journey started! Route map is now open 🗺️");
+        toast.success("🚀 Transit started! Tracking is now live for all parties.", { duration: 5000 });
+        sendBrowserNotification('CarryGo – Transit Started! 🚚', `Parcel ${res.description?.slice(0, 20) || 'package'} is now in transit.`);
         setNavParcel(res);
         setDetailParcel(res);
+        setTrackingParcel(res);
+        setPickupOtp("");
         await loadMyDeliveries();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -286,18 +337,25 @@ export default function Traveller() {
                     <div>
                       <h3 className="text-2xl font-bold text-foreground">Confirm Pickup</h3>
                       <p className="text-muted-foreground text-sm max-w-sm mx-auto mt-2">
-                        Ready to go? Click below to confirm you have picked up the parcel from <strong>{detailParcel.senderName}</strong>.
+                        Enter the secure 4-digit OTP from <strong>{detailParcel.senderName}</strong> to confirm you have picked up the parcel.
                       </p>
                     </div>
 
-                    <div className="flex flex-col items-center gap-6">
+                    <div className="flex flex-col items-center gap-4">
+                      <Input
+                        value={pickupOtp}
+                        onChange={(e) => setPickupOtp(e.target.value)}
+                        placeholder="Enter 4-Digit OTP"
+                        maxLength={4}
+                        className="max-w-[150px] text-center text-lg font-bold tracking-[0.3em] font-mono h-12 rounded-xl"
+                      />
                       <Button
                         size="lg"
                         className="w-full max-w-xs bg-secondary text-white font-bold h-14 rounded-2xl shadow-xl shadow-secondary/20 hover:scale-[1.02] transition-transform"
                         onClick={() => handleStartTransit(detailParcel.id, detailParcel)}
-                        disabled={isConfirming}
+                        disabled={isConfirming || pickupOtp.length !== 4}
                       >
-                        {isConfirming ? "Confirming..." : "Pick Up & Start Journey"}
+                        {isConfirming ? "Confirming..." : "Verify & Start Journey"}
                       </Button>
                     </div>
                   </div>

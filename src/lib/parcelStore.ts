@@ -21,6 +21,8 @@ export interface Parcel {
   status: ParcelStatus;
   travellerId?: string;
   travellerName?: string;
+  travellerPhone?: string;
+  pickupOtp?: string;
   createdAt: string;
 }
 
@@ -32,6 +34,8 @@ interface BackendParcel extends Omit<Parcel, 'id' | 'fromLocation' | 'toLocation
   fromLocation?: string;
   toLocation?: string;
   senderPhone?: string;
+  travellerPhone?: string;
+  pickupOtp?: string;
 }
 
 // Convert backend parcel to frontend parcel format if needed
@@ -78,9 +82,9 @@ export async function getParcelsByPhone(phone: string): Promise<Parcel[]> {
   return resp.data.map(mapParcel);
 }
 
-export async function updateParcelStatus(id: string, status: ParcelStatus, travellerName?: string): Promise<Parcel | null> {
+export async function updateParcelStatus(id: string, status: ParcelStatus, travellerName?: string, otp?: string): Promise<Parcel | null> {
   let endpoint = "/parcel/update-status";
-  let payload: Record<string, unknown> = { parcelId: id, status };
+  let payload: Record<string, unknown> = { parcelId: id, status, otp };
 
   if (status === 'requested') {
     endpoint = "/parcel/request-parcel";

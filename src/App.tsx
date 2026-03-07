@@ -3,7 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/lib/authContext";
+import { AuthProvider, useAuth } from "@/lib/authContext";
+import { SocketProvider } from "@/lib/socketContext";
 import Navbar from "@/components/Navbar";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -16,24 +17,34 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Inner component so useAuth has access to context
+function AppInner() {
+  const { user } = useAuth();
+  return (
+    <SocketProvider userId={user?.id}>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/sender" element={<Sender />} />
+        <Route path="/receiver" element={<Receiver />} />
+        <Route path="/traveller" element={<Traveller />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </SocketProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
+      <Sonner richColors position="top-right" />
       <BrowserRouter>
         <AuthProvider>
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/sender" element={<Sender />} />
-            <Route path="/receiver" element={<Receiver />} />
-            <Route path="/traveller" element={<Traveller />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppInner />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
