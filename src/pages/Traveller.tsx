@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/StatusBadge";
-import RouteMap from "@/components/RouteMap";
+import RouteMap3D from "@/components/RouteMap3D";
 import {
   searchParcels, updateParcelStatus,
   requestParcel, getMyDeliveries, type Parcel
@@ -140,7 +140,7 @@ export default function Traveller() {
               </Button>
             </div>
             <div className="p-4">
-              <RouteMap from={navParcel.fromLocation} to={navParcel.toLocation} animate={true} />
+              <RouteMap3D from={navParcel.fromLocation} to={navParcel.toLocation} animate={true} />
             </div>
           </motion.div>
         )}
@@ -312,7 +312,7 @@ export default function Traveller() {
                       </h3>
                       <Button size="sm" variant="outline" onClick={() => setNavParcel(detailParcel)}>Full Screen Map</Button>
                     </div>
-                    <RouteMap from={detailParcel.fromLocation} to={detailParcel.toLocation} animate={true} />
+                    <RouteMap3D from={detailParcel.fromLocation} to={detailParcel.toLocation} animate={true} />
 
                     <div className="rounded-3xl border-2 border-green-500/30 bg-green-500/5 p-8 text-center space-y-6">
                       <p className="text-sm font-bold text-green-600 uppercase tracking-widest">Final Step</p>
@@ -547,7 +547,7 @@ export default function Traveller() {
                                   exit={{ opacity: 0, height: 0 }}
                                   className="mt-4 overflow-hidden"
                                 >
-                                  <RouteMap from={p.fromLocation} to={p.toLocation} animate={p.status === "in-transit"} />
+                                  <RouteMap3D from={p.fromLocation} to={p.toLocation} animate={p.status === "in-transit"} />
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -643,7 +643,7 @@ export default function Traveller() {
                           {expanded === p.id && (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">
                               {p.description && <p className="mb-3 text-sm text-muted-foreground">{p.description}</p>}
-                              <RouteMap from={p.fromLocation} to={p.toLocation} animate={false} />
+                              <RouteMap3D from={p.fromLocation} to={p.toLocation} animate={false} />
                             </motion.div>
                           )}
                         </motion.div>
