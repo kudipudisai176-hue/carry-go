@@ -39,6 +39,16 @@ const updatePayment = async (req, res) => {
 
         parcel.paymentStatus = paymentStatus;
         await parcel.save();
+
+        // 🔔 Emit real-time Socket.io event to all parties
+        const io = req.app.get('io');
+        if (io) {
+            const payload = { parcel: parcel.toObject(), status: parcel.status, paymentStatus: parcel.paymentStatus };
+            if (parcel.senderId) io.to(parcel.senderId.toString()).emit('parcel-status-update', payload);
+            if (parcel.travellerId) io.to(parcel.travellerId.toString()).emit('parcel-status-update', payload);
+            if (parcel.receiverPhone) io.to(parcel.receiverPhone.toString()).emit('parcel-status-update', payload);
+        }
+
         res.json(parcel);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -55,6 +65,16 @@ const receiveConfirm = async (req, res) => {
         parcel.status = 'received';
         parcel.receiverConfirm = true;
         await parcel.save();
+
+        // 🔔 Emit real-time Socket.io event to all parties
+        const io = req.app.get('io');
+        if (io) {
+            const payload = { parcel: parcel.toObject(), status: 'received' };
+            if (parcel.senderId) io.to(parcel.senderId.toString()).emit('parcel-status-update', payload);
+            if (parcel.travellerId) io.to(parcel.travellerId.toString()).emit('parcel-status-update', payload);
+            if (parcel.receiverPhone) io.to(parcel.receiverPhone.toString()).emit('parcel-status-update', payload);
+        }
+
         res.json(parcel);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -153,6 +173,10 @@ const updateParcelStatus = async (req, res) => {
             // Notify traveller
             if (parcel.travellerId) {
                 io.to(parcel.travellerId.toString()).emit('parcel-status-update', payload);
+            }
+            // Notify receiver
+            if (parcel.receiverPhone) {
+                io.to(parcel.receiverPhone.toString()).emit('parcel-status-update', payload);
             }
         }
 

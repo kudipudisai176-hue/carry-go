@@ -22,11 +22,11 @@ app.set('io', io);
 
 // Socket connection
 io.on('connection', (socket) => {
-    // Each user joins a room identified by their userId
-    socket.on('join', (userId) => {
-        if (userId) {
-            socket.join(userId);
-            console.log(`User ${userId} joined Socket room`);
+    // Each user joins a room identified by their userId or phone
+    socket.on('join', (roomIdentifier) => {
+        if (roomIdentifier) {
+            socket.join(roomIdentifier.toString());
+            console.log(`Socket joined room: ${roomIdentifier}`);
         }
     });
 
