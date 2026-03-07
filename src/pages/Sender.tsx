@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Package, Plus, Check, Trash2, MapPin, Weight, ArrowRight, Sparkles, Box, Bike, Bus, Car, Truck, Info, Layers, CreditCard, QrCode, Smartphone, ExternalLink, X } from "lucide-react";
+import { Package, Plus, Check, Trash2, MapPin, Weight, ArrowRight, Sparkles, Box, Bike, Bus, Car, Truck, Info, Layers, CreditCard, QrCode, Smartphone, ExternalLink, X, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
 import RouteMap from "@/components/RouteMap";
-import { createParcel, getAllParcels, updateParcelStatus, deleteParcel, updateParcelPayment, type Parcel } from "@/lib/parcelStore";
+import { createParcel, getAllParcels, updateParcelStatus, deleteParcel, updateParcelPayment, acceptRequest, type Parcel } from "@/lib/parcelStore";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authContext";
 
@@ -21,13 +21,13 @@ export default function Sender() {
 
   // New form fields
   const [weight, setWeight] = useState("");
-  const [size, setSize] = useState<any>("small");
+  const [size, setSize] = useState<'small' | 'medium' | 'large' | 'very-large'>("small");
   const [itemCount, setItemCount] = useState(1);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<'pay-now' | 'pay-on-delivery'>('pay-now');
 
   // Checkout/Payment states
-  const [checkoutParcel, setCheckoutParcel] = useState<any>(null);
+  const [checkoutParcel, setCheckoutParcel] = useState<Omit<Parcel, 'id' | 'status' | 'createdAt'> | null>(null);
   const [showScanner, setShowScanner] = useState<string | null>(null); // parcel id for scanning
 
   const refresh = async () => {
@@ -51,7 +51,7 @@ export default function Sender() {
       fromLocation: fd.get("fromLocation") as string,
       toLocation: fd.get("toLocation") as string,
       weight: parseFloat(weight) || 0,
-      size: size as any,
+      size: size,
       itemCount: itemCount,
       vehicleType: selectedVehicle,
       paymentMethod: paymentMethod,
@@ -85,6 +85,7 @@ export default function Sender() {
     setShowScanner(null);
     refresh();
   };
+
 
   const resetForm = () => {
     setShowForm(false);
@@ -128,9 +129,9 @@ export default function Sender() {
 
   const statusCounts = {
     total: parcels.length,
-    pending: parcels.filter(p => p.status === "pending").length,
-    inTransit: parcels.filter(p => p.status === "in-transit").length,
-    delivered: parcels.filter(p => p.status === "delivered").length,
+    pending: parcels.filter(p => p.status === "pending" || p.status === "requested").length,
+    inTransit: parcels.filter(p => p.status === "in-transit" || p.status === "picked-up").length,
+    delivered: parcels.filter(p => p.status === "delivered" || p.status === "received").length,
   };
 
   return (
@@ -282,7 +283,7 @@ export default function Sender() {
                   <Label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <Box className="h-3 w-3" /> Size
                   </Label>
-                  <Select value={size} onValueChange={setSize}>
+                  <Select value={size} onValueChange={(v) => setSize(v as 'small' | 'medium' | 'large' | 'very-large')}>
                     <SelectTrigger className="border-border focus:ring-1 focus:ring-secondary/20">
                       <SelectValue />
                     </SelectTrigger>
@@ -494,6 +495,91 @@ export default function Sender() {
       </AnimatePresence>
 
 
+      {/* ── Active Requests Alerts ── */}
+      <div className="mb-6 flex flex-col gap-3">
+        {/* Pending Requests */}
+        {parcels.filter(p => p.status === 'requested').map((p) => (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-2xl border border-secondary/20 bg-secondary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between shadow-xl shadow-secondary/5 gap-4"
+          >
+            <div className="flex items-center gap-4">
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-white">
+                <Truck className="h-5 w-5" />
+                <span className="absolute -right-1 -top-1 block h-3 w-3 animate-ping rounded-full bg-secondary opacity-75" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Delivery Request from {p.travellerName || "a Traveller"}!</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  They want to carry your parcel from <span className="font-semibold text-foreground">{p.fromLocation}</span> to <span className="font-semibold text-foreground">{p.toLocation}</span>.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-secondary text-secondary hover:bg-secondary hover:text-white font-semibold"
+                onClick={() => setSelected(p)}
+              >
+                View Details
+              </Button>
+              <Button
+                size="sm"
+                className="bg-secondary text-white hover:bg-secondary/90 shadow-md shadow-secondary/20 font-semibold flex items-center gap-1"
+                onClick={() => handleAccept(p.id)}
+              >
+                <Check className="h-3.5 w-3.5" /> Accept
+              </Button>
+            </div>
+          </motion.div>
+        ))}
+
+        {/* Ready for Pickup - OTP Sharing */}
+        {parcels.filter(p => p.status === 'accepted').map((p) => (
+          <motion.div
+            key={`otp-${p.id}`}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="relative overflow-hidden rounded-2xl border-2 border-secondary/30 bg-card p-4 shadow-xl shadow-secondary/5"
+          >
+            {/* Animated background glow */}
+            <motion.div
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-secondary/20 blur-2xl"
+            />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-white shadow-lg shadow-secondary/20">
+                  <Truck className="h-6 w-6 animate-bounce" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Ready for Pickup! 🚚</h3>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-0.5">{p.travellerName || "A traveller"} is coming to collect your parcel</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <p className="text-[10px] font-bold text-secondary bg-secondary/10 px-3 py-1 rounded-full uppercase tracking-widest">Verified & Assigned</p>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-10 text-xs font-bold text-muted-foreground hover:text-secondary hover:bg-secondary/10 px-4 rounded-xl border border-transparent hover:border-secondary/20"
+                  onClick={() => setSelected(p)}
+                >
+                  Details
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
       {/* ── Empty state ── */}
       {parcels.length === 0 ? (
         <motion.div
@@ -636,6 +722,14 @@ export default function Sender() {
                             ✦ Traveller: {p.travellerName}
                           </p>
                         )}
+                        {p.status === 'accepted' && (
+                          <div className="mt-3 flex items-center justify-between rounded-xl border border-secondary/20 bg-secondary/5 px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <KeyRound className="h-3.5 w-3.5 text-secondary" />
+                              <span className="text-[10px] font-bold text-secondary uppercase tracking-tight">Assigned Traveller is arriving soon.</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -695,7 +789,7 @@ export default function Sender() {
                         className="mt-4 overflow-hidden"
                       >
                         <div className="mb-2 h-px bg-gradient-to-r from-transparent via-secondary/30 to-transparent" />
-                        <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-2 gap-4 mb-4 sm:grid-cols-4">
                           <div className="rounded-xl border border-border/50 bg-muted/30 p-3">
                             <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Payment Detail</p>
                             <div className="flex items-center gap-2">
@@ -795,6 +889,8 @@ export default function Sender() {
           </div>
         )}
       </AnimatePresence>
+
+
     </div>
   );
 }

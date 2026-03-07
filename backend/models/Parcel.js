@@ -32,8 +32,6 @@ const parcelSchema = new mongoose.Schema({
         enum: ['pending', 'requested', 'accepted', 'picked-up', 'in-transit', 'delivered', 'received', 'completed', 'cancelled'],
         default: 'pending'
     },
-    pickupOTP: { type: String },
-    deliveryOTP: { type: String },
     pickupPhoto: { type: String },
     deliveryPhoto: { type: String },
     price: { type: Number, required: true },

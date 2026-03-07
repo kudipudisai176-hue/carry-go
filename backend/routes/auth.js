@@ -10,7 +10,9 @@ router.post('/register', async (req, res) => {
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ message: 'User already exists' });
 
-        user = new User({ name, email, password, role, phone, vehicleType, adharNumber, adharPhoto, livePhoto });
+        user = new User({
+            name, email, password, role, phone, vehicleType, adharNumber, adharPhoto, livePhoto
+        });
         await user.save();
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -21,8 +23,8 @@ router.post('/register', async (req, res) => {
                 name,
                 email,
                 role,
-                phone,
-                vehicleType: vehicleType || undefined
+                phone: user.phone,
+                vehicleType: user.vehicleType || undefined
             }
         });
     } catch (err) {

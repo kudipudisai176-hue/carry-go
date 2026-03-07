@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const Parcel = require('../models/Parcel');
+const User = require('../models/User');
 const auth = require('../middleware/authMiddleware');
 
 // Multer Setup for Photo Uploads
@@ -18,6 +19,9 @@ const upload = multer({ storage });
 router.post('/create-parcel', auth, async (req, res) => {
     try {
         const { title, description, weight, size, itemCount, vehicleType, pickupLocation, deliveryLocation, price, paymentMethod, paymentStatus, receiverName, receiverPhone, senderName } = req.body;
+
+
+
         const parcel = new Parcel({
             senderId: req.user.id,
             senderName,
@@ -33,9 +37,7 @@ router.post('/create-parcel', auth, async (req, res) => {
             deliveryLocation,
             price,
             paymentMethod,
-            paymentStatus: paymentStatus || 'unpaid',
-            pickupOTP: Math.floor(1000 + Math.random() * 9000).toString(),
-            deliveryOTP: Math.floor(1000 + Math.random() * 9000).toString()
+            paymentStatus: paymentStatus || 'unpaid'
         });
         await parcel.save();
         res.status(201).json(parcel);
@@ -127,39 +129,7 @@ router.post('/update-status', auth, async (req, res) => {
     }
 });
 
-// POST /api/parcel/pickup-confirm
-router.post('/pickup-confirm', auth, upload.single('photo'), async (req, res) => {
-    try {
-        const { parcelId, otp } = req.body;
-        const parcel = await Parcel.findById(parcelId);
-        if (!parcel) return res.status(404).json({ message: 'Parcel not found' });
-        if (parcel.pickupOTP && parcel.pickupOTP !== otp) return res.status(400).json({ message: 'Invalid OTP' });
 
-        parcel.status = 'picked-up';
-        parcel.pickupPhoto = req.file ? req.file.path : null;
-        await parcel.save();
-        res.json(parcel);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-// POST /api/parcel/delivery-confirm
-router.post('/delivery-confirm', auth, upload.single('photo'), async (req, res) => {
-    try {
-        const { parcelId, otp } = req.body;
-        const parcel = await Parcel.findById(parcelId);
-        if (!parcel) return res.status(404).json({ message: 'Parcel not found' });
-        if (parcel.deliveryOTP && parcel.deliveryOTP !== otp) return res.status(400).json({ message: 'Invalid OTP' });
-
-        parcel.status = 'delivered';
-        parcel.deliveryPhoto = req.file ? req.file.path : null;
-        await parcel.save();
-        res.json(parcel);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
 
 // POST /api/parcel/release-payment
 router.post('/release-payment', auth, async (req, res) => {

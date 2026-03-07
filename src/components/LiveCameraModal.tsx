@@ -15,20 +15,70 @@ export default function LiveCameraModal({ isOpen, onClose, onCapture }: LiveCame
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+    const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+
+    useEffect(() => {
+        const checkCameras = async () => {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(device => device.kind === "videoinput");
+                setHasMultipleCameras(cameras.length > 1);
+            } catch (err) {
+                console.error("Error checking cameras:", err);
+            }
+        };
+        checkCameras();
+    }, []);
 
     const startCamera = async () => {
         try {
             setError(null);
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
-            });
-            setStream(mediaStream);
-            if (videoRef.current) {
-                videoRef.current.srcObject = mediaStream;
+
+            // 1. Basic check for browser support
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setError("Your browser doesn't support camera access. Please use Chrome, Safari or Firefox.");
+                return;
             }
-        } catch (err) {
+
+            // Stop existing stream before starting new one
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            // 2. Try with ideal constraints first
+            try {
+                const mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                setStream(mediaStream);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = mediaStream;
+                }
+            } catch (innerErr) {
+                console.warn("Ideal constraints failed, trying basic video:", innerErr);
+                // 3. Fallback to basic video access
+                const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode }
+                });
+                setStream(fallbackStream);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = fallbackStream;
+                }
+            }
+        } catch (err: any) {
             console.error("Camera access error:", err);
-            setError("Could not access camera. Please check permissions.");
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                setError("Camera access was blocked. Please click the camera icon in your browser address bar and choose 'Allow'.");
+            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                setError("No camera was found on this device.");
+            } else {
+                setError("Camera error: " + (err.message || "Unknown error"));
+            }
         }
     };
 
@@ -39,6 +89,10 @@ export default function LiveCameraModal({ isOpen, onClose, onCapture }: LiveCame
         }
     };
 
+    const toggleFacingMode = () => {
+        setFacingMode(prev => prev === "user" ? "environment" : "user");
+    };
+
     useEffect(() => {
         if (isOpen) {
             startCamera();
@@ -47,7 +101,7 @@ export default function LiveCameraModal({ isOpen, onClose, onCapture }: LiveCame
             setCapturedImage(null);
         }
         return () => stopCamera();
-    }, [isOpen]);
+    }, [isOpen, facingMode]);
 
     const handleCapture = () => {
         if (videoRef.current && canvasRef.current) {
@@ -82,16 +136,28 @@ export default function LiveCameraModal({ isOpen, onClose, onCapture }: LiveCame
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                     className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white p-6 shadow-2xl"
                 >
-                    <button
-                        onClick={onClose}
-                        className="absolute right-4 top-4 z-10 rounded-full bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
+                    <div className="absolute right-4 top-4 z-10 flex gap-2">
+                        {hasMultipleCameras && !capturedImage && (
+                            <button
+                                onClick={toggleFacingMode}
+                                className="rounded-full bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200"
+                            >
+                                <RefreshCw className="h-5 w-5" />
+                            </button>
+                        )}
+                        <button
+                            onClick={onClose}
+                            className="rounded-full bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
 
                     <div className="mb-6 text-center">
                         <h2 className="text-xl font-bold text-slate-900">Live Photo Capture</h2>
-                        <p className="text-sm text-slate-500">Position your face clearly within the frame</p>
+                        <p className="text-sm text-slate-500">
+                            {facingMode === 'user' ? "Position your face clearly within the frame" : "Focus your Aadhaar or vehicle clearly"}
+                        </p>
                     </div>
 
                     <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-900 shadow-inner">

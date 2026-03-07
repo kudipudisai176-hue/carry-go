@@ -19,13 +19,9 @@ app.use('/api/parcel', require('./routes/parcel'));
 app.use('/api/travel', require('./routes/travel'));
 
 // MongoDB Connection
-mongoose.connect("mongodb://127.0.0.1:27017/carrygo")
-    .then(() => {
-        console.log("MongoDB Connected Successfully");
-    })
-    .catch((err) => {
-        console.log("MongoDB Connection Error:", err);
-    });
+mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/carrygo")
+    .then(() => console.log("MongoDB Connected Successfully"))
+    .catch((err) => console.log("MongoDB Connection Error:", err));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
