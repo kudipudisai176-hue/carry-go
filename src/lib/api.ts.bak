@@ -1,0 +1,27 @@
+import axios from 'axios';
+
+const API_URL = 'http://127.0.0.1:5000/api/';
+
+const api = axios.create({
+    baseURL: API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Set global authorization header if token exists
+api.interceptors.request.use(
+    (config) => {
+        const userString = localStorage.getItem('carrygo_user');
+        if (userString) {
+            const user = JSON.parse(userString);
+            if (user.token) {
+                config.headers.Authorization = `Bearer ${user.token}`;
+            }
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+export default api;

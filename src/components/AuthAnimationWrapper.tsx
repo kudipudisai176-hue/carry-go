@@ -4,11 +4,19 @@ import ParticleCanvas from "./ParticleCanvas";
 import { type UserRole } from "@/lib/authContext";
 
 export default function AuthAnimationWrapper({ children, role }: { children: React.ReactNode; role?: UserRole | null }) {
-    const [step, setStep] = useState(0);
+    // Check if this is the first visit — skip animation if not
+    const isFirstVisit = !localStorage.getItem("carrygo_signup_visited");
+    const [step, setStep] = useState(isFirstVisit ? 0 : 4);
 
     useEffect(() => {
-        // Animation sequence (Bike Edition):
-        // 0: Bike driving in from side (1.8s)
+        // Only run the intro animation sequence on first visit
+        if (!isFirstVisit) return;
+
+        // Mark as visited so future visits skip the animation
+        localStorage.setItem("carrygo_signup_visited", "true");
+
+        // Animation sequence (Delivery Boy Edition):
+        // 0: Boy slides in from side (1.8s)
         // 1: Brake & Skid (0.6s)
         // 2: Steady & Look (0.6s)
         // 3: Throwing paper (0.8s)
@@ -192,9 +200,9 @@ export default function AuthAnimationWrapper({ children, role }: { children: Rea
                             />
 
                             <img
-                                src="/delivery-bike.png"
-                                alt="Delivery Bike"
-                                className="w-48 sm:w-64 h-auto drop-shadow-2xl filter brightness-110 relative z-10"
+                                src="/delivery-boy.png"
+                                alt="Delivery Boy"
+                                className="w-40 sm:w-56 h-auto drop-shadow-2xl relative z-10"
                             />
 
                             <AnimatePresence>
@@ -262,10 +270,10 @@ export default function AuthAnimationWrapper({ children, role }: { children: Rea
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 0.8, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.4 }}
+                    transition={{ repeat: Infinity, duration: 0.6 }}
                     className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-orange-600 font-black italic uppercase tracking-widest"
                 >
-                    *vroom vroom*
+                    📦 Delivery on the way!
                 </motion.div>
             )}
         </motion.div>

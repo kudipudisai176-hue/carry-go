@@ -1,11 +1,12 @@
 import api from "./api";
 
-export type ParcelStatus = 'pending' | 'requested' | 'accepted' | 'in-transit' | 'delivered' | 'received' | 'completed' | 'cancelled';
+export type ParcelStatus = 'pending' | 'requested' | 'accepted' | 'picked-up' | 'in-transit' | 'delivered' | 'received' | 'completed' | 'cancelled';
 
 export interface Parcel {
   id: string;
   _id?: string; // MongoDB ID
   senderName: string;
+  senderPhone?: string;
   receiverName: string;
   receiverPhone: string;
   fromLocation: string;
@@ -23,13 +24,23 @@ export interface Parcel {
   createdAt: string;
 }
 
+interface BackendParcel extends Omit<Parcel, 'id' | 'fromLocation' | 'toLocation'> {
+  _id?: string;
+  id?: string;
+  pickupLocation?: { address: string };
+  deliveryLocation?: { address: string };
+  fromLocation?: string;
+  toLocation?: string;
+  senderPhone?: string;
+}
+
 // Convert backend parcel to frontend parcel format if needed
-const mapParcel = (p: any): Parcel => ({
+const mapParcel = (p: BackendParcel): Parcel => ({
   ...p,
-  id: p._id || p.id,
-  fromLocation: p.pickupLocation?.address || p.fromLocation,
-  toLocation: p.deliveryLocation?.address || p.toLocation,
-});
+  id: (p._id || p.id) as string,
+  fromLocation: p.pickupLocation?.address || p.fromLocation || "",
+  toLocation: p.deliveryLocation?.address || p.toLocation || "",
+} as Parcel);
 
 export async function createParcel(parcel: Omit<Parcel, 'id' | 'status' | 'createdAt'>): Promise<Parcel> {
   const backendData = {
@@ -57,6 +68,11 @@ export async function getAllParcels(): Promise<Parcel[]> {
   return resp.data.map(mapParcel);
 }
 
+export async function getMyDeliveries(): Promise<Parcel[]> {
+  const resp = await api.get("/parcel/my-deliveries");
+  return resp.data.map(mapParcel);
+}
+
 export async function getParcelsByPhone(phone: string): Promise<Parcel[]> {
   const resp = await api.get(`/parcel/by-phone/${phone}`);
   return resp.data.map(mapParcel);
@@ -64,7 +80,7 @@ export async function getParcelsByPhone(phone: string): Promise<Parcel[]> {
 
 export async function updateParcelStatus(id: string, status: ParcelStatus, travellerName?: string): Promise<Parcel | null> {
   let endpoint = "/parcel/update-status";
-  let payload: any = { parcelId: id, status };
+  let payload: Record<string, unknown> = { parcelId: id, status };
 
   if (status === 'requested') {
     endpoint = "/parcel/request-parcel";
@@ -85,6 +101,18 @@ export async function updateParcelPayment(id: string, status: 'paid' | 'unpaid')
 
 export async function markReceived(id: string): Promise<Parcel | null> {
   const resp = await api.post("/parcel/receive-confirm", { parcelId: id });
+  return mapParcel(resp.data);
+}
+
+
+
+export async function requestParcel(id: string, travellerName: string): Promise<Parcel | null> {
+  const resp = await api.post("/parcel/request-parcel", { parcelId: id, travellerName });
+  return mapParcel(resp.data);
+}
+
+export async function acceptRequest(id: string): Promise<Parcel | null> {
+  const resp = await api.post("/parcel/accept-request", { parcelId: id });
   return mapParcel(resp.data);
 }
 

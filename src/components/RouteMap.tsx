@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup } from "react-leaflet";
+import { Volume2, VolumeX } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Fix default marker icons
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
   iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
@@ -41,7 +42,9 @@ async function geocode(place: string): Promise<[number, number] | null> {
     );
     const data = await res.json();
     if (data.length > 0) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-  } catch {}
+  } catch (err) {
+    console.error("Geocoding failed:", err);
+  }
   return null;
 }
 
@@ -50,6 +53,17 @@ export default function RouteMap({ from, to, animate }: RouteMapProps) {
   const [toCoords, setToCoords] = useState<[number, number] | null>(null);
   const [markerPos, setMarkerPos] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+
+  const speak = (text: string) => {
+    if (!isVoiceEnabled || !window.speechSynthesis) return;
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -58,8 +72,12 @@ export default function RouteMap({ from, to, animate }: RouteMapProps) {
       setToCoords(t);
       if (f) setMarkerPos(f);
       setLoading(false);
+
+      if (animate && f && t) {
+        speak(`Starting journey from ${from} to ${to}. Please follow the highlighted route.`);
+      }
     });
-  }, [from, to]);
+  }, [from, to, animate]);
 
   useEffect(() => {
     if (!animate || !fromCoords || !toCoords) return;
@@ -71,9 +89,20 @@ export default function RouteMap({ from, to, animate }: RouteMapProps) {
       const lat = fromCoords[0] + (toCoords[0] - fromCoords[0]) * ratio;
       const lng = fromCoords[1] + (toCoords[1] - fromCoords[1]) * ratio;
       setMarkerPos([lat, lng]);
-      if (step >= totalSteps) clearInterval(interval);
+
+      if (step === 50) {
+        speak("You are halfway to your destination. Keep going!");
+      }
+
+      if (step >= totalSteps) {
+        clearInterval(interval);
+        speak(`You have arrived at ${to}. Journey completed!`);
+      }
     }, 200);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.speechSynthesis?.cancel();
+    };
   }, [animate, fromCoords, toCoords]);
 
   if (loading) {
@@ -98,7 +127,19 @@ export default function RouteMap({ from, to, animate }: RouteMapProps) {
   const positions: [number, number][] = [fromCoords, toCoords];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border shadow-card">
+    <div className="relative overflow-hidden rounded-xl border border-border shadow-card">
+      <button
+        onClick={() => {
+          setIsVoiceEnabled(!isVoiceEnabled);
+          if (isVoiceEnabled) window.speechSynthesis?.cancel();
+        }}
+        className={`absolute right-4 top-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-full border border-border shadow-md transition-all ${isVoiceEnabled ? "bg-secondary text-white" : "bg-white text-muted-foreground"
+          }`}
+        title={isVoiceEnabled ? "Disable Voice" : "Enable Voice"}
+      >
+        {isVoiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+      </button>
+
       <MapContainer
         center={fromCoords}
         zoom={6}
@@ -110,9 +151,23 @@ export default function RouteMap({ from, to, animate }: RouteMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds positions={positions} />
-        <Marker position={fromCoords} />
-        <Marker position={toCoords} />
-        {markerPos && animate && <Marker position={markerPos} icon={orangeIcon} />}
+        <Marker position={fromCoords}>
+          <Popup className="font-semibold">
+            <div className="text-secondary text-xs uppercase mb-1">Pickup (Sender)</div>
+            {from}
+          </Popup>
+        </Marker>
+        <Marker position={toCoords}>
+          <Popup className="font-semibold">
+            <div className="text-green-600 text-xs uppercase mb-1">Dropoff (Receiver)</div>
+            {to}
+          </Popup>
+        </Marker>
+        {markerPos && animate && (
+          <Marker position={markerPos} icon={orangeIcon}>
+            <Popup className="font-semibold text-secondary">Traveller</Popup>
+          </Marker>
+        )}
         <Polyline positions={positions} pathOptions={{ color: "hsl(28, 100%, 55%)", weight: 3, dashArray: "8 8" }} />
       </MapContainer>
     </div>
