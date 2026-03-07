@@ -77,6 +77,15 @@ const requestParcel = async (req, res) => {
         parcel.travellerPhone = traveller.phone;
         parcel.status = 'requested';
         await parcel.save();
+
+        // Notify sender in real-time
+        const io = req.app.get('io');
+        if (io && parcel.senderId) {
+            io.to(parcel.senderId.toString()).emit('parcel-requested', {
+                parcel: parcel.toObject(),
+                travellerName: parcel.travellerName
+            });
+        }
         res.json(parcel);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -95,6 +104,15 @@ const acceptRequest = async (req, res) => {
         parcel.status = 'accepted';
         parcel.pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
         await parcel.save();
+
+        // Notify traveller in real-time
+        const io = req.app.get('io');
+        if (io && parcel.travellerId) {
+            io.to(parcel.travellerId.toString()).emit('parcel-accepted', {
+                parcel: parcel.toObject(),
+                otp: parcel.pickupOtp
+            });
+        }
         res.json(parcel);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -110,17 +128,40 @@ const updateParcelStatus = async (req, res) => {
 
         if ((status === 'picked-up' || status === 'in-transit') && parcel.status === 'accepted') {
             if (parcel.pickupOtp && parcel.pickupOtp !== otp) {
-                return res.status(400).json({ message: 'Invalid OTP' });
+                return res.status(400).json({ message: 'Invalid OTP. Please check with your sender.' });
             }
         }
 
         parcel.status = status;
+        if (status === 'in-transit') {
+            parcel.transitStartedAt = new Date();
+        }
+        if (status === 'delivered') {
+            parcel.deliveredAt = new Date();
+        }
         await parcel.save();
+
+        // 🔔 Emit real-time Socket.io event to all parties
+        const io = req.app.get('io');
+        if (io) {
+            const payload = { parcel: parcel.toObject(), status };
+
+            // Notify sender
+            if (parcel.senderId) {
+                io.to(parcel.senderId.toString()).emit('parcel-status-update', payload);
+            }
+            // Notify traveller
+            if (parcel.travellerId) {
+                io.to(parcel.travellerId.toString()).emit('parcel-status-update', payload);
+            }
+        }
+
         res.json(parcel);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
+
 
 // GET /api/parcel/my-parcels
 const getMyParcels = async (req, res) => {
