@@ -18,13 +18,14 @@ const upload = multer({ storage });
 // POST /api/parcel/create-parcel
 router.post('/create-parcel', auth, async (req, res) => {
     try {
-        const { title, description, weight, size, itemCount, vehicleType, pickupLocation, deliveryLocation, price, paymentMethod, paymentStatus, receiverName, receiverPhone, senderName } = req.body;
+        const { title, description, weight, size, itemCount, vehicleType, pickupLocation, deliveryLocation, price, paymentMethod, paymentStatus, receiverName, receiverPhone, senderName, senderPhone } = req.body;
 
 
 
         const parcel = new Parcel({
             senderId: req.user.id,
-            senderName,
+            senderName: senderName || req.user.name,
+            senderPhone: senderPhone || req.user.phone,
             receiverName,
             receiverPhone,
             title,
@@ -152,6 +153,16 @@ router.post('/release-payment', auth, async (req, res) => {
 router.get('/my-parcels', auth, async (req, res) => {
     try {
         const parcels = await Parcel.find({ senderId: req.user.id }).sort({ createdAt: -1 });
+        res.json(parcels);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// GET /api/parcel/my-deliveries
+router.get('/my-deliveries', auth, async (req, res) => {
+    try {
+        const parcels = await Parcel.find({ travellerId: req.user.id }).sort({ createdAt: -1 });
         res.json(parcels);
     } catch (err) {
         res.status(500).json({ message: err.message });
