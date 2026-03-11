@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Sender from "./pages/Sender";
 import Receiver from "./pages/Receiver";
 import Traveller from "./pages/Traveller";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ function AppInner() {
         <Route path="/sender" element={<Sender />} />
         <Route path="/receiver" element={<Receiver />} />
         <Route path="/traveller" element={<Traveller />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </SocketProvider>

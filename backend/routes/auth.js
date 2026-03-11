@@ -50,7 +50,10 @@ router.post('/register', async (req, res) => {
                 email,
                 role,
                 phone,
-                vehicleType: vehicleType || undefined,
+                vehicleType: user.vehicleType || undefined,
+                adharNumber: user.adharNumber || undefined,
+                adharPhoto: user.adharPhoto || undefined,
+                profilePhoto: user.profilePhoto || undefined,
                 walletBalance: 0
             }
         });
@@ -79,6 +82,9 @@ router.post('/login', async (req, res) => {
                 role: user.role,
                 phone: user.phone,
                 vehicleType: user.vehicleType || undefined,
+                adharNumber: user.adharNumber || undefined,
+                adharPhoto: user.adharPhoto || undefined,
+                profilePhoto: user.profilePhoto || undefined,
                 walletBalance: user.walletBalance || 0
             }
         });

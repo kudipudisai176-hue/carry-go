@@ -72,10 +72,13 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <span className="hidden items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary sm:flex">
+              <Link
+                to="/profile"
+                className="hidden items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary transition-all hover:bg-secondary/20 sm:flex"
+              >
                 <User className="h-3 w-3" />
                 {user.name} · {user.role}
-              </span>
+              </Link>
               <Button
                 size="sm"
                 variant="ghost"

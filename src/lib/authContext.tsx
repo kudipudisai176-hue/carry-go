@@ -11,6 +11,9 @@ export interface User {
   phone: string;
   vehicleType?: string;
   walletBalance?: number;
+  adharNumber?: string;
+  adharPhoto?: string;
+  profilePhoto?: string;
   token?: string;
 }
 
