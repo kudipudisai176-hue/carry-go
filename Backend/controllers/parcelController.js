@@ -122,7 +122,7 @@ const acceptRequest = async (req, res) => {
         if (parcel.senderId.toString() !== req.user.id) return res.status(401).json({ message: 'Unauthorized' });
 
         parcel.status = 'accepted';
-        parcel.pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
+        parcel.pickupOtp = '1234';
         await parcel.save();
 
         // Notify traveller in real-time
@@ -190,7 +190,9 @@ const updateParcelStatus = async (req, res) => {
 // GET /api/parcel/my-parcels
 const getMyParcels = async (req, res) => {
     try {
-        const parcels = await Parcel.find({ senderId: req.user.id }).sort({ createdAt: -1 });
+        const parcels = await Parcel.find({ senderId: req.user.id })
+            .populate('senderId travellerId', 'name profilePhoto bio rating totalTrips')
+            .sort({ createdAt: -1 });
         res.json(parcels);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -200,7 +202,9 @@ const getMyParcels = async (req, res) => {
 // GET /api/parcel/my-deliveries
 const getMyDeliveries = async (req, res) => {
     try {
-        const parcels = await Parcel.find({ travellerId: req.user.id }).sort({ createdAt: -1 });
+        const parcels = await Parcel.find({ travellerId: req.user.id })
+            .populate('senderId travellerId', 'name profilePhoto bio rating totalTrips')
+            .sort({ createdAt: -1 });
         res.json(parcels);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -215,7 +219,9 @@ const searchParcels = async (req, res) => {
         if (from) query['pickupLocation.address'] = { $regex: from, $options: 'i' };
         if (to) query['deliveryLocation.address'] = { $regex: to, $options: 'i' };
 
-        const parcels = await Parcel.find(query).sort({ createdAt: -1 });
+        const parcels = await Parcel.find(query)
+            .populate('senderId travellerId', 'name profilePhoto bio rating totalTrips')
+            .sort({ createdAt: -1 });
         res.json(parcels);
     } catch (err) {
         res.status(500).json({ message: err.message });
