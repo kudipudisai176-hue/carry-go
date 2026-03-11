@@ -6,15 +6,20 @@ const fs = require('fs');
 const path = require('path');
 
 const saveBase64Image = (base64String, prefix) => {
-    if (!base64String || !base64String.startsWith('data:image')) return null;
-    const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, 'base64');
-    const folder = 'uploads/';
-    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
-    const fileName = `${prefix}-${Date.now()}.jpg`;
-    const filePath = path.join(folder, fileName);
-    fs.writeFileSync(filePath, buffer);
-    return filePath.replace(/\\/g, '/'); 
+    try {
+        if (!base64String || !base64String.startsWith('data:image')) return null;
+        const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        const folder = 'uploads/';
+        if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+        const fileName = `${prefix}-${Date.now()}.jpg`;
+        const filePath = path.join(folder, fileName);
+        fs.writeFileSync(filePath, buffer);
+        return filePath.replace(/\\/g, '/'); 
+    } catch (err) {
+        console.error('Image save error:', err);
+        return null;
+    }
 };
 
 // POST /api/auth/register
