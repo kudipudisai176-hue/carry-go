@@ -18,7 +18,8 @@ import {
   Edit2,
   Check,
   X,
-  Loader2
+  Loader2,
+  Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,25 @@ export default function Profile() {
     }
   };
 
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        setIsSaving(true);
+        const success = await updateUser({ profilePhoto: base64 });
+        setIsSaving(false);
+        if (success) {
+          toast.success("Profile photo updated!");
+        } else {
+          toast.error("Failed to update profile photo");
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const API_URL = "http://localhost:5000";
 
   return (
@@ -90,16 +110,38 @@ export default function Profile() {
             {/* Avatar Row */}
             <div className="relative -mt-16 mb-6 flex items-end justify-between">
               <div className="relative">
-                <div className="h-32 w-32 overflow-hidden rounded-3xl border-4 border-white bg-slate-100 shadow-lg">
+                <div className="h-32 w-32 overflow-hidden rounded-3xl border-4 border-white bg-slate-100 shadow-lg group/avatar relative">
                   {user.profilePhoto ? (
                     <img 
                       src={`${API_URL}/${user.profilePhoto}`} 
                       alt="Profile" 
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform group-hover/avatar:scale-110"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-300">
                       <User className="h-16 w-16" />
+                    </div>
+                  )}
+                  
+                  {/* Photo Edit Overlay */}
+                  <label 
+                    htmlFor="profile-photo-upload"
+                    className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer text-white"
+                  >
+                    <Camera className="h-6 w-6 mb-1" />
+                    <span className="text-[10px] font-bold">Edit Photo</span>
+                  </label>
+                  <input 
+                    type="file" 
+                    id="profile-photo-upload" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                  />
+                  
+                  {isSaving && !isEditing && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   )}
                 </div>

@@ -98,11 +98,15 @@ const authMiddleware = require('../middleware/authMiddleware');
 // PUT /api/auth/profile/update
 router.put('/profile/update', authMiddleware, async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, profilePhoto } = req.body;
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         if (name) user.name = name;
+        if (profilePhoto) {
+            const photoPath = saveBase64Image(profilePhoto, 'profile');
+            if (photoPath) user.profilePhoto = photoPath;
+        }
         await user.save();
 
         res.json({
