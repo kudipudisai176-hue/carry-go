@@ -7,6 +7,10 @@ const parcelSchema = new mongoose.Schema({
     receiverName: { type: String },
     receiverPhone: { type: String },
     travellerName: { type: String },
+    travellerPhone: { type: String },
+    travellerAdharNumber: { type: String },
+    travellerAdharPhoto: { type: String },
+    travellerPhoto: { type: String },
     title: { type: String, required: true },
     description: { type: String, required: true },
     weight: { type: Number, required: true }, // in kg
@@ -36,6 +40,7 @@ const parcelSchema = new mongoose.Schema({
     deliveryOTP: { type: String },
     pickupPhoto: { type: String },
     deliveryPhoto: { type: String },
+    parcelPhoto: { type: String },
     price: { type: Number, required: true },
     paymentMethod: {
         type: String,

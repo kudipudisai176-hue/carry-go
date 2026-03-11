@@ -2,6 +2,20 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const fs = require('fs');
+const path = require('path');
+
+const saveBase64Image = (base64String, prefix) => {
+    if (!base64String || !base64String.startsWith('data:image')) return null;
+    const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, 'base64');
+    const folder = 'uploads/';
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+    const fileName = `${prefix}-${Date.now()}.jpg`;
+    const filePath = path.join(folder, fileName);
+    fs.writeFileSync(filePath, buffer);
+    return filePath.replace(/\\/g, '/'); 
+};
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -10,7 +24,21 @@ router.post('/register', async (req, res) => {
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ message: 'User already exists' });
 
-        user = new User({ name, email, password, role, phone, vehicleType, adharNumber, adharPhoto, livePhoto });
+        const adharFilePath = saveBase64Image(adharPhoto, 'adhar');
+        const profileFilePath = saveBase64Image(livePhoto, 'profile');
+
+        user = new User({ 
+            name, 
+            email, 
+            password, 
+            role, 
+            phone, 
+            vehicleType, 
+            adharNumber, 
+            adharPhoto: adharFilePath, 
+            livePhoto: profileFilePath,
+            profilePhoto: profileFilePath 
+        });
         await user.save();
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -22,7 +50,8 @@ router.post('/register', async (req, res) => {
                 email,
                 role,
                 phone,
-                vehicleType: vehicleType || undefined
+                vehicleType: vehicleType || undefined,
+                walletBalance: 0
             }
         });
     } catch (err) {
@@ -49,7 +78,8 @@ router.post('/login', async (req, res) => {
                 email,
                 role: user.role,
                 phone: user.phone,
-                vehicleType: user.vehicleType || undefined
+                vehicleType: user.vehicleType || undefined,
+                walletBalance: user.walletBalance || 0
             }
         });
     } catch (err) {

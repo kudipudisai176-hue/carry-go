@@ -112,13 +112,42 @@ export default function Index() {
 
           {/* Subtitle */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65, duration: 0.6 }}
             className="mx-auto mb-10 max-w-2xl text-lg text-primary-foreground/75 md:text-xl"
           >
-            Connect senders with travellers heading the same way. Fast, affordable,
-            and community-powered parcel delivery across the globe.
+            {"The smartest way to ship anything,".split(" ").map((word, i) => (
+              <motion.span
+                key={i}
+                animate={{
+                  opacity: [0, 1, 1, 0],
+                  y: [10, 0, 0, -10],
+                  filter: ["blur(10px)", "blur(0px)", "blur(0px)", "blur(10px)"]
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 4,
+                  delay: i * 0.1,
+                  times: [0, 0.2, 0.8, 1]
+                }}
+                className="inline-block mr-1.5"
+              >
+                {word}
+              </motion.span>
+            ))}
+            <motion.span
+              animate={{
+                opacity: [0, 1, 1, 0],
+                backgroundPosition: ["-200% 0", "0% 0", "200% 0", "400% 0"]
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 4,
+                delay: 1.2,
+                times: [0, 0.3, 0.7, 1]
+              }}
+              className="inline-block bg-gradient-to-r from-secondary via-white to-secondary bg-[length:200%_auto] bg-clip-text font-bold text-transparent ml-1"
+            >
+              anywhere in India.
+            </motion.span>
           </motion.p>
 
           {/* CTA Buttons */}
@@ -135,33 +164,15 @@ export default function Index() {
                 </Link>
               </Button>
             ) : (
-              <>
-                <Button asChild size="lg" className="btn-glow rounded-full bg-secondary px-8 text-secondary-foreground hover:bg-secondary/90">
-                  <Link to="/signup">
-                    Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="btn-glow rounded-full border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10">
-                  <Link to="/login">Sign In</Link>
-                </Button>
-              </>
+              <Button asChild size="lg" className="btn-glow rounded-full bg-[#000080] border border-white/20 px-8 text-white hover:bg-[#000080]/90">
+                <Link to="/signup">
+                  Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             )}
           </motion.div>
 
-          {/* Scroll hint */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.3 }}
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
-          >
-            <span className="text-xs text-primary-foreground/40 tracking-widest uppercase">scroll</span>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
-              className="w-0.5 h-8 rounded-full bg-gradient-to-b from-secondary/60 to-transparent"
-            />
-          </motion.div>
+
         </motion.div>
 
         {/* Bus travel animation at the bottom */}

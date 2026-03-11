@@ -283,12 +283,16 @@ export default function Traveller() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Vehicle</p>
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Payout</p>
                     <div className="flex items-center gap-2">
-                      {detailParcel.vehicleType === 'bike' && <Bike className="h-4 w-4 text-secondary/70" />}
-                      {detailParcel.vehicleType === 'car' && <Car className="h-4 w-4 text-secondary/70" />}
-                      {(!detailParcel.vehicleType || detailParcel.vehicleType === 'bus' || detailParcel.vehicleType === 'van') && <Truck className="h-4 w-4 text-secondary/70" />}
-                      <span className="font-bold capitalize">{detailParcel.vehicleType || "Any"}</span>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${detailParcel.paymentStatus === 'paid'
+                        ? (detailParcel.paymentReleased ? 'bg-success/15 text-success' : 'bg-blue-500/15 text-blue-500')
+                        : 'bg-red-500/15 text-red-500'
+                        }`}>
+                        {detailParcel.paymentStatus === 'paid'
+                          ? (detailParcel.paymentReleased ? 'Funds Released' : 'Held in Escrow')
+                          : 'Waiting for Payment'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -393,6 +397,27 @@ export default function Traveller() {
           </motion.div>
         ) : (
           <>
+            {/* ── Wallet Card ── */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-6 rounded-3xl bg-indigo-600 p-6 text-white shadow-xl shadow-indigo-200"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-indigo-200">Total Earnings</p>
+                  <h2 className="mt-1 text-4xl font-black">₹{user?.walletBalance || 0}</h2>
+                </div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20">
+                  <PackageCheck className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="mt-6 flex items-center gap-2">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                <p className="text-[10px] font-bold uppercase tracking-tighter text-indigo-100">Withdrawals process automatically weekly</p>
+              </div>
+            </motion.div>
+
             {/* ── Tabs ── */}
             <div className="mb-6 flex gap-2 rounded-xl bg-muted p-1">
               <button
@@ -516,16 +541,18 @@ export default function Traveller() {
                                 )}
                               </div>
 
-                              {/* Route Info */}
+                              {/* Payout Info */}
                               <div className="rounded-xl bg-muted/30 p-3 space-y-2">
-                                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Route</p>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <MapPin className="h-4 w-4 text-green-500" />
-                                  <span className="text-foreground font-medium">{p.fromLocation}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <MapPin className="h-4 w-4 text-red-500" />
-                                  <span className="text-foreground font-medium">{p.toLocation}</span>
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Payout Status</p>
+                                <div className="flex items-center gap-2">
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.paymentStatus === 'paid'
+                                    ? (p.paymentReleased ? 'bg-success/15 text-success' : 'bg-blue-500/15 text-blue-500')
+                                    : 'bg-red-500/15 text-red-500'
+                                    }`}>
+                                    {p.paymentStatus === 'paid'
+                                      ? (p.paymentReleased ? 'Paid to You' : 'Funds in Escrow')
+                                      : 'Unpaid by Sender'}
+                                  </span>
                                 </div>
                               </div>
                             </div>

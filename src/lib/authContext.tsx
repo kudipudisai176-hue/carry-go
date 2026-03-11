@@ -10,6 +10,7 @@ export interface User {
   role: UserRole;
   phone: string;
   vehicleType?: string;
+  walletBalance?: number;
   token?: string;
 }
 

@@ -6,6 +6,19 @@ const morgan = require('morgan');
 const path = require('path');
 
 const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// Attach io to req object
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -18,6 +31,20 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/parcel', require('./routes/parcel'));
 app.use('/api/travel', require('./routes/travel'));
 
+// Socket.io Connection Logic
+io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
+
+    socket.on('join', (userId) => {
+        socket.join(userId);
+        console.log(`User ${userId} joined room`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+    });
+});
+
 // MongoDB Connection
 mongoose.connect("mongodb://127.0.0.1:27017/carrygo")
     .then(() => {
@@ -28,6 +55,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/carrygo")
     });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+

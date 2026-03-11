@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
     livePhoto: { type: String },  // Base64 or file path
     profilePhoto: { type: String },
     rating: { type: Number, default: 0 },
+    walletBalance: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }
 });
 

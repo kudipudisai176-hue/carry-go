@@ -5,6 +5,7 @@ const statusConfig: Record<ParcelStatus, { label: string; className: string }> =
   requested: { label: "Requested", className: "bg-warning/15 text-warning" },
   accepted: { label: "Accepted", className: "bg-secondary/15 text-secondary" },
   "in-transit": { label: "In Transit", className: "bg-primary/15 text-primary" },
+  "picked-up": { label: "Picked Up", className: "bg-amber-500/15 text-amber-500" },
   delivered: { label: "Delivered", className: "bg-success/15 text-success" },
   received: { label: "Received", className: "bg-indigo-500/15 text-indigo-500 font-bold" },
   completed: { label: "Completed", className: "bg-emerald-500/15 text-emerald-500" },

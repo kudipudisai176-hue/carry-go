@@ -22,7 +22,12 @@ export interface Parcel {
   travellerId?: string;
   travellerName?: string;
   travellerPhone?: string;
+  travellerAdharNumber?: string;
+  travellerAdharPhoto?: string;
+  travellerPhoto?: string;
   pickupOtp?: string;
+  paymentReleased?: boolean;
+  parcelPhoto?: string;
   createdAt: string;
 }
 
@@ -46,24 +51,32 @@ const mapParcel = (p: BackendParcel): Parcel => ({
   toLocation: p.deliveryLocation?.address || p.toLocation || "",
 } as Parcel);
 
-export async function createParcel(parcel: Omit<Parcel, 'id' | 'status' | 'createdAt'>): Promise<Parcel> {
-  const backendData = {
-    title: parcel.description.slice(0, 30) || "Parcel",
-    description: parcel.description,
-    weight: parcel.weight,
-    size: parcel.size,
-    itemCount: parcel.itemCount,
-    vehicleType: parcel.vehicleType,
-    pickupLocation: { lat: 0, lng: 0, address: parcel.fromLocation },
-    deliveryLocation: { lat: 0, lng: 0, address: parcel.toLocation },
-    price: parcel.weight * 50 + 20,
-    paymentMethod: parcel.paymentMethod,
-    paymentStatus: parcel.paymentStatus,
-    receiverPhone: parcel.receiverPhone,
-    receiverName: parcel.receiverName,
-    senderName: parcel.senderName
-  };
-  const resp = await api.post("/parcel/create-parcel", backendData);
+export async function createParcel(parcel: Omit<Parcel, 'id' | 'status' | 'createdAt'>, photo?: File): Promise<Parcel> {
+  const formData = new FormData();
+  formData.append("title", parcel.description.slice(0, 30) || "Parcel");
+  formData.append("description", parcel.description);
+  formData.append("weight", parcel.weight.toString());
+  formData.append("size", parcel.size);
+  formData.append("itemCount", parcel.itemCount.toString());
+  formData.append("vehicleType", parcel.vehicleType || "");
+  formData.append("pickupLocation", JSON.stringify({ lat: 0, lng: 0, address: parcel.fromLocation }));
+  formData.append("deliveryLocation", JSON.stringify({ lat: 0, lng: 0, address: parcel.toLocation }));
+  formData.append("price", (parcel.weight * 50 + 20).toString());
+  formData.append("paymentMethod", parcel.paymentMethod);
+  formData.append("paymentStatus", parcel.paymentStatus);
+  formData.append("receiverPhone", parcel.receiverPhone);
+  formData.append("receiverName", parcel.receiverName);
+  formData.append("senderName", parcel.senderName);
+
+  if (photo) {
+    formData.append("photo", photo);
+  }
+
+  const resp = await api.post("/parcel/create-parcel", formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return mapParcel(resp.data);
 }
 
@@ -127,6 +140,11 @@ export async function deleteParcel(id: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function releaseParcelPayment(id: string): Promise<Parcel | null> {
+  const resp = await api.post("/parcel/release-payment", { parcelId: id });
+  return mapParcel(resp.data);
 }
 
 export async function searchParcels(from?: string, to?: string): Promise<Parcel[]> {
