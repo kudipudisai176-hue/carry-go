@@ -93,4 +93,36 @@ router.post('/login', async (req, res) => {
     }
 });
 
+const authMiddleware = require('../middleware/authMiddleware');
+
+// PUT /api/auth/profile/update
+router.put('/profile/update', authMiddleware, async (req, res) => {
+    try {
+        const { name } = req.body;
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (name) user.name = name;
+        await user.save();
+
+        res.json({
+            message: 'Profile updated',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                phone: user.phone,
+                vehicleType: user.vehicleType || undefined,
+                adharNumber: user.adharNumber || undefined,
+                adharPhoto: user.adharPhoto || undefined,
+                profilePhoto: user.profilePhoto || undefined,
+                walletBalance: user.walletBalance || 0
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;

@@ -1,8 +1,16 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Package, Truck, MapPin, Home, LogIn, UserPlus, LogOut, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/authContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const publicNavItems = [
   { path: "/", label: "Home", icon: Home },
@@ -22,18 +30,24 @@ const roleNavItems = {
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const navItems = user
     ? [...publicNavItems, ...roleNavItems[user.role]]
     : publicNavItems;
 
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary transition-transform hover:scale-105 active:scale-95">
             <Package className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="font-heading text-xl font-bold text-foreground">
@@ -42,7 +56,7 @@ export default function Navbar() {
         </Link>
 
         {/* Nav links */}
-        <div className="flex items-center gap-1 rounded-full bg-muted p-1">
+        <div className="flex items-center gap-1 rounded-full bg-muted/50 p-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -55,11 +69,11 @@ export default function Navbar() {
                 {isActive && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute inset-0 rounded-full bg-card shadow-card"
+                    className="absolute inset-0 rounded-full bg-card shadow-sm"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
                   />
                 )}
-                <span className={`relative z-10 flex items-center gap-1.5 ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                <span className={`relative z-10 flex items-center gap-1.5 ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{item.label}</span>
                 </span>
@@ -71,33 +85,47 @@ export default function Navbar() {
         {/* Auth buttons */}
         <div className="flex items-center gap-2">
           {user ? (
-            <>
-              <Link
-                to="/profile"
-                className="hidden items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary transition-all hover:bg-secondary/20 sm:flex"
-              >
-                <User className="h-3 w-3" />
-                {user.name} · {user.role}
-              </Link>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={logout}
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline ml-1">Logout</span>
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="rounded-full bg-secondary/10 hover:bg-secondary/20 px-3 py-1.5 transition-all text-secondary gap-2 border-none">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-sm">
+                    <User className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="hidden sm:inline font-bold text-xs">{user.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border/40 backdrop-blur-xl">
+                <DropdownMenuLabel className="px-2 py-3">
+                  <div className="flex flex-col space-y-0.5">
+                    <p className="text-sm font-bold text-foreground">{user.name}</p>
+                    <p className="text-xs text-muted-foreground font-medium">{user.email}</p>
+                    <div className="mt-2 inline-flex items-center rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-bold text-secondary self-start uppercase">
+                      {user.role} Account
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border/40" />
+                <DropdownMenuItem asChild className="rounded-xl focus:bg-secondary focus:text-secondary-foreground cursor-pointer py-2.5">
+                  <Link to="/profile" className="flex items-center w-full">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="rounded-xl focus:bg-destructive focus:text-destructive-foreground cursor-pointer py-2.5 text-destructive font-medium">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <>
-              <Button asChild size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Button asChild size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                 <Link to="/login">
                   <LogIn className="mr-1 h-4 w-4" />
                   <span className="hidden sm:inline">Login</span>
                 </Link>
               </Button>
-              <Button asChild size="sm" className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
+              <Button asChild size="sm" className="rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-md">
                 <Link to="/signup">
                   <UserPlus className="mr-1 h-4 w-4" />
                   <span className="hidden sm:inline">Sign Up</span>

@@ -32,6 +32,7 @@ interface AuthContextType {
     livePhoto?: string,
   }) => Promise<boolean>;
   logout: () => void;
+  updateUser: (data: { name: string }) => Promise<boolean>;
   isLoading: boolean;
 }
 
@@ -95,8 +96,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => persist(null);
 
+  const updateUser = async (data: { name: string }) => {
+    try {
+      const resp = await api.put("/auth/profile/update", data);
+      const updatedUser = resp.data.user;
+      persist({
+        ...updatedUser,
+        token: user?.token
+      });
+      return true;
+    } catch (err: any) {
+      console.error("Update profile error:", err.response?.data || err.message);
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
