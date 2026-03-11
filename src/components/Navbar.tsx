@@ -3,6 +3,9 @@ import { Package, Truck, MapPin, Home, LogIn, UserPlus, LogOut, User } from "luc
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/authContext";
+import { useState } from "react";
+import UserProfileModal from "./UserProfileModal";
+import { UserData } from "@/lib/parcelStore";
 
 const publicNavItems = [
   { path: "/", label: "Home", icon: Home },
@@ -23,6 +26,17 @@ const roleNavItems = {
 export default function Navbar() {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [showProfile, setShowProfile] = useState(false);
+
+  // Convert auth user to UserData format for the modal
+  const userData: UserData | null = user ? {
+    id: user.id,
+    name: user.name,
+    rating: 5.0,
+    totalTrips: 0,
+    profilePhoto: (user as any).profilePhoto,
+    bio: (user as any).bio
+  } : null;
 
   const navItems = user
     ? [...publicNavItems, ...roleNavItems[user.role]]
@@ -72,10 +86,13 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <span className="hidden items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary sm:flex">
+              <button 
+                onClick={() => setShowProfile(true)}
+                className="hidden items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary sm:flex hover:bg-secondary/20 transition-colors cursor-pointer"
+              >
                 <User className="h-3 w-3" />
                 {user.name} · {user.role}
-              </span>
+              </button>
               <Button
                 size="sm"
                 variant="ghost"
@@ -104,6 +121,11 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      <UserProfileModal 
+        user={userData} 
+        isOpen={showProfile} 
+        onClose={() => setShowProfile(false)} 
+      />
     </nav>
   );
 }

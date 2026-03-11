@@ -2,9 +2,20 @@ import api from "./api";
 
 export type ParcelStatus = 'pending' | 'requested' | 'accepted' | 'picked-up' | 'in-transit' | 'delivered' | 'received' | 'completed' | 'cancelled';
 
+export interface UserData {
+  id: string;
+  _id?: string;
+  name: string;
+  profilePhoto?: string;
+  bio?: string;
+  rating: number;
+  totalTrips: number;
+}
+
 export interface Parcel {
   id: string;
   _id?: string; // MongoDB ID
+  senderId: string | UserData;
   senderName: string;
   senderPhone?: string;
   receiverName: string;
@@ -19,11 +30,13 @@ export interface Parcel {
   paymentStatus: 'unpaid' | 'paid';
   description: string;
   status: ParcelStatus;
-  travellerId?: string;
+  travellerId?: string | UserData;
   travellerName?: string;
   travellerPhone?: string;
   pickupOtp?: string;
   createdAt: string;
+  senderData?: UserData;
+  travellerData?: UserData;
 }
 
 interface BackendParcel extends Omit<Parcel, 'id' | 'fromLocation' | 'toLocation'> {
@@ -39,12 +52,36 @@ interface BackendParcel extends Omit<Parcel, 'id' | 'fromLocation' | 'toLocation
 }
 
 // Convert backend parcel to frontend parcel format if needed
-const mapParcel = (p: BackendParcel): Parcel => ({
-  ...p,
-  id: (p._id || p.id) as string,
-  fromLocation: p.pickupLocation?.address || p.fromLocation || "",
-  toLocation: p.deliveryLocation?.address || p.toLocation || "",
-} as Parcel);
+const mapParcel = (p: BackendParcel): Parcel => {
+  const senderData = typeof p.senderId === 'object' ? {
+    id: (p.senderId as any)._id || (p.senderId as any).id,
+    name: (p.senderId as any).name,
+    profilePhoto: (p.senderId as any).profilePhoto,
+    bio: (p.senderId as any).bio,
+    rating: (p.senderId as any).rating,
+    totalTrips: (p.senderId as any).totalTrips
+  } as UserData : undefined;
+
+  const travellerData = typeof p.travellerId === 'object' ? {
+    id: (p.travellerId as any)._id || (p.travellerId as any).id,
+    name: (p.travellerId as any).name,
+    profilePhoto: (p.travellerId as any).profilePhoto,
+    bio: (p.travellerId as any).bio,
+    rating: (p.travellerId as any).rating,
+    totalTrips: (p.travellerId as any).totalTrips
+  } as UserData : undefined;
+
+  return {
+    ...p,
+    id: (p._id || p.id) as string,
+    fromLocation: p.pickupLocation?.address || p.fromLocation || "",
+    toLocation: p.deliveryLocation?.address || p.toLocation || "",
+    senderData,
+    travellerData,
+    senderId: typeof p.senderId === 'object' ? (p.senderId._id || p.senderId.id) : p.senderId,
+    travellerId: typeof p.travellerId === 'object' ? (p.travellerId._id || p.travellerId.id) : p.travellerId,
+  } as Parcel;
+};
 
 export async function createParcel(parcel: Omit<Parcel, 'id' | 'status' | 'createdAt'>): Promise<Parcel> {
   const backendData = {

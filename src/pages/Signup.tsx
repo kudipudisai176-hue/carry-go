@@ -30,10 +30,19 @@ export default function Signup() {
   const [role, setRole] = useState<UserRole>("sender");
   const [vehicle, setVehicle] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
+  const [idType, setIdType] = useState<"aadhar" | "pan">("aadhar");
   const [adharNumber, setAdharNumber] = useState("");
   const [adharPhoto, setAdharPhoto] = useState<string | null>(null);
   const [livePhoto, setLivePhoto] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  // Validation States
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+    phone: "",
+    idNumber: ""
+  });
   const { signup } = useAuth();
   const navigate = useNavigate();
 
@@ -46,8 +55,55 @@ export default function Signup() {
     }
   };
 
+  const validateEmail = (val: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!val) return "Email is required";
+    if (!re.test(val)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validatePassword = (val: string) => {
+    if (!val) return "Password is required";
+    if (val.length < 6) return "Password must be at least 6 characters";
+    return "";
+  };
+
+  const validatePhone = (val: string) => {
+    if (!val) return "Phone number is required";
+    if (!/^\d{10}$/.test(val)) return "Phone number must be exactly 10 digits";
+    return "";
+  };
+
+  const validateId = (val: string, type: "aadhar" | "pan") => {
+    if (!val) return `${type === 'aadhar' ? 'Aadhaar' : 'PAN'} number is required`;
+    if (type === 'aadhar') {
+      if (!/^\d{12}$/.test(val)) return "Aadhaar must be 12 digits";
+    } else {
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val.toUpperCase())) return "Invalid PAN format (e.g. ABCDE1234F)";
+    }
+    return "";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    const phoneErr = validatePhone(phone);
+    const idErr = role === 'traveller' ? validateId(adharNumber, idType) : "";
+
+    setErrors({
+      email: emailErr,
+      password: passwordErr,
+      phone: phoneErr,
+      idNumber: idErr
+    });
+
+    if (emailErr || passwordErr || phoneErr || idErr) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
     if (!role) {
       toast.error("Please select your role");
       return;
@@ -64,19 +120,20 @@ export default function Signup() {
     }
 
     const signupData = {
-      name, email, password, role, phone,
+      name, email, password, role, phone: `+91${phone}`,
       vehicleType: vehicle || undefined,
+      identificationType: role === 'traveller' ? idType : undefined,
       adharNumber: role === 'traveller' ? adharNumber : undefined,
       adharPhoto: role === 'traveller' ? adharPhoto : undefined,
       livePhoto: role === 'traveller' ? livePhoto : undefined,
     };
 
-    const success = await signup(signupData);
-    if (success) {
+    const result = await signup(signupData);
+    if (result.success) {
       toast.success("Account created! Welcome to CarryGo 🎉");
       navigate(role === 'sender' ? "/sender" : role === 'traveller' ? "/traveller" : "/receiver");
     } else {
-      toast.error("Registration failed. Please try again.");
+      toast.error(result.message || "Registration failed. Please try again.");
     }
   };
 
@@ -119,11 +176,15 @@ export default function Signup() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErrors(prev => ({ ...prev, email: validateEmail(e.target.value) }));
+                }}
                 placeholder="you@example.com"
                 required
-                className="border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all duration-300"
+                className={`border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all duration-300 ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
               />
+              {errors.email && <p className="text-[10px] text-red-500 font-medium pl-1">{errors.email}</p>}
             </div>
           </div>
           <div className="group space-y-2">
@@ -134,25 +195,39 @@ export default function Signup() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrors(prev => ({ ...prev, password: validatePassword(e.target.value) }));
+              }}
               placeholder="••••••••"
               required
-              className="border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all duration-300"
+              className={`border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all duration-300 ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
             />
+            {errors.password && <p className="text-[10px] text-red-500 font-medium pl-1">{errors.password}</p>}
           </div>
 
           <div className="group space-y-2">
             <Label htmlFor="phone" className="flex items-center gap-2 text-sm font-medium text-slate-700 transition-colors group-hover:text-orange-500">
               <Smartphone className="h-4 w-4" /> Phone Number
             </Label>
-            <Input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+1 234..."
-              required
-              className="border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all duration-300"
-            />
+            <div className="flex gap-0 overflow-hidden rounded-md border border-slate-200 transition-all duration-300 focus-within:border-orange-500/50 focus-within:ring-2 focus-within:ring-orange-500/20">
+              <div className="flex items-center justify-center bg-slate-100 px-3 text-sm font-bold text-slate-600 border-r border-slate-200">
+                +91
+              </div>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setPhone(val);
+                  setErrors(prev => ({ ...prev, phone: validatePhone(val) }));
+                }}
+                placeholder="10-digit number"
+                required
+                className="border-0 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
+            {errors.phone && <p className="text-[10px] text-red-500 font-medium pl-1">{errors.phone}</p>}
           </div>
 
           <div>
@@ -209,18 +284,40 @@ export default function Signup() {
                 <span>Verification Details</span>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-slate-700">
-                    <FileText className="h-4 w-4" /> Aadhaar Number
-                  </Label>
-                  <Input
-                    value={adharNumber}
-                    onChange={(e) => setAdharNumber(e.target.value)}
-                    placeholder="12-digit number"
-                    className="border-slate-200 focus:border-purple-500 focus:ring-purple-200"
-                  />
+              <div className="space-y-4">
+                <div className="flex p-1 bg-slate-100 rounded-xl">
+                  {["aadhar", "pan"].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setIdType(type as "aadhar" | "pan");
+                        setErrors(prev => ({ ...prev, idNumber: validateId(adharNumber, type as any) }));
+                      }}
+                      className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-all rounded-lg ${idType === type ? 'bg-white shadow-sm text-purple-600' : 'text-slate-500'}`}
+                    >
+                      {type === 'aadhar' ? 'Aadhaar Card' : 'PAN Card'}
+                    </button>
+                  ))}
                 </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-slate-700">
+                      <FileText className="h-4 w-4" /> {idType === 'aadhar' ? 'Aadhaar Number' : 'PAN Number'}
+                    </Label>
+                    <Input
+                      value={adharNumber}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setAdharNumber(val);
+                        setErrors(prev => ({ ...prev, idNumber: validateId(val, idType) }));
+                      }}
+                      placeholder={idType === 'aadhar' ? "12-digit number" : "ABCDE1234F"}
+                      className={`border-slate-200 focus:border-purple-500 focus:ring-purple-200 ${errors.idNumber ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+                    />
+                    {errors.idNumber && <p className="text-[10px] text-red-500 font-medium pl-1">{errors.idNumber}</p>}
+                  </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-slate-700">
                     <Upload className="h-4 w-4" /> Aadhaar Photo
@@ -304,6 +401,7 @@ export default function Signup() {
                       );
                     })}
                   </div>
+                </div>
                 </div>
               </div>
             </motion.div>

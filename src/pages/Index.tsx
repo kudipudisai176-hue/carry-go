@@ -8,9 +8,9 @@ import ParticleCanvas from "@/components/ParticleCanvas";
 import BusTravelAnimation from "@/components/BusTravelAnimation";
 
 const features = [
-  { icon: Package, title: "Send Parcels", desc: "Create shipments in seconds and track them live.", link: "/signup" },
-  { icon: Truck, title: "Carry & Earn", desc: "Browse parcels on your route and earn by delivering.", link: "/signup" },
-  { icon: MapPin, title: "Live Tracking", desc: "Track your parcel in real-time on an interactive map.", link: "/signup" },
+  { icon: Package, title: "Send Parcels", desc: "Create shipments in seconds and track them live.", link: "/dashboard" },
+  { icon: Truck, title: "Carry & Earn", desc: "Browse parcels on your route and earn by delivering.", link: "/dashboard" },
+  { icon: MapPin, title: "Live Tracking", desc: "Track your parcel in real-time on an interactive map.", link: "/dashboard" },
 ];
 
 const stats = [
@@ -71,10 +71,13 @@ export default function Index() {
           </div>
         </div>
 
+        {/* Bus travel animation at the bottom - moved here to pass behind buttons */}
+        <BusTravelAnimation />
+
         {/* Hero content */}
         <motion.div
           style={{ y: heroY, opacity: heroOpacity }}
-          className="relative mx-auto flex min-h-[90vh] max-w-6xl flex-col items-center justify-center px-4 text-center"
+          className="relative z-10 mx-auto flex min-h-[90vh] max-w-6xl flex-col items-center justify-center px-4 text-center"
         >
           {/* Logo badge */}
           <motion.div
@@ -141,9 +144,6 @@ export default function Index() {
                     Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="btn-glow rounded-full border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10">
-                  <Link to="/login">Sign In</Link>
-                </Button>
               </>
             )}
           </motion.div>
@@ -163,10 +163,6 @@ export default function Index() {
             />
           </motion.div>
         </motion.div>
-
-        {/* Bus travel animation at the bottom */}
-        <BusTravelAnimation />
-
 
       </section>
 
@@ -379,11 +375,13 @@ export default function Index() {
             Join thousands of senders and travellers today. It's free to get started.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="btn-glow rounded-full bg-secondary px-8 text-secondary-foreground hover:bg-secondary/90">
-              <Link to={user ? "/dashboard" : "/signup"}>
-                {user ? "Go to Dashboard" : "Create Free Account"} <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            {user && (
+              <Button asChild size="lg" className="btn-glow rounded-full bg-secondary px-8 text-secondary-foreground hover:bg-secondary/90">
+                <Link to="/dashboard">
+                  Go to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </motion.div>
       </section>
@@ -404,7 +402,7 @@ export default function Index() {
               </span>
             </motion.div>
             <div className="flex gap-6 text-sm text-muted-foreground">
-              {[{ to: "/", label: "Home" }, { to: "/signup", label: "Sign Up" }, { to: "/login", label: "Login" }].map((link) => (
+              {[{ to: "/", label: "Home" }, { to: "/login", label: "Login" }].map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
