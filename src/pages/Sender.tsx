@@ -18,6 +18,8 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authContext";
 import { useSocket } from "@/lib/socketContext";
+import UserProfileModal from "@/components/UserProfileModal";
+import { UserData } from "@/lib/parcelStore";
 
 export default function Sender() {
   const { user } = useAuth();
@@ -31,6 +33,7 @@ export default function Sender() {
   const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "inTransit" | "delivered">("all");
+  const [profileUser, setProfileUser] = useState<UserData | null>(null);
 
   // New form fields
   const [weight, setWeight] = useState("");
@@ -161,7 +164,7 @@ export default function Sender() {
     const parcelData = {
       senderName: user?.name || "Me",
       receiverName: fd.get("receiverName") as string,
-      receiverPhone: fd.get("receiverPhone") as string,
+      receiverPhone: `+91${fd.get("receiverPhone")}`,
       fromLocation: fd.get("fromLocation") as string,
       toLocation: fd.get("toLocation") as string,
       weight: parseFloat(weight) || 0,
@@ -171,6 +174,7 @@ export default function Sender() {
       paymentMethod: paymentMethod,
       paymentStatus: 'unpaid' as const,
       description: fd.get("description") as string,
+      senderId: user?.id || "",
     };
 
     if (paymentMethod === 'pay-now') {
@@ -415,13 +419,21 @@ export default function Sender() {
               </div>
               <div className="group">
                 <Label htmlFor="receiverPhone" className="text-sm font-medium text-foreground/80">Receiver Phone</Label>
-                <Input
-                  id="receiverPhone"
-                  name="receiverPhone"
-                  required
-                  placeholder="+91..."
-                  className="mt-1 border-border transition-all focus:border-secondary focus:ring-secondary/20"
-                />
+                <div className="mt-1 flex gap-0 overflow-hidden rounded-md border border-border transition-all focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/20">
+                  <div className="flex items-center justify-center bg-muted px-3 text-sm font-bold text-muted-foreground border-r border-border">
+                    +91
+                  </div>
+                  <Input
+                    id="receiverPhone"
+                    name="receiverPhone"
+                    required
+                    placeholder="10-digit number"
+                    onChange={(e) => {
+                      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    }}
+                    className="border-0 bg-background transition-all focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
               </div>
               <div className="group">
                 <Label htmlFor="fromLocation" className="text-sm font-medium text-foreground/80">From</Label>
@@ -1551,6 +1563,13 @@ export default function Sender() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Profile Modal */}
+      <UserProfileModal 
+        user={profileUser} 
+        isOpen={!!profileUser} 
+        onClose={() => setProfileUser(null)} 
+      />
     </div>
   );
 }

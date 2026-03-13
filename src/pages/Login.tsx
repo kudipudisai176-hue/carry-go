@@ -13,17 +13,38 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("sender");
+  const [errors, setErrors] = useState({ email: "", password: "" });
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const validateEmail = (val: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!val) return "Email is required";
+    if (!re.test(val)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validatePassword = (val: string) => {
+    if (!val) return "Password is required";
+    if (val.length < 6) return "Password must be at least 6 characters";
+    return "";
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    setErrors({ email: emailErr, password: passwordErr });
+
+    if (emailErr || passwordErr) {
+      toast.error("Please fix the errors");
+      return;
+    }
+
     try {
       // call login with role
-      const success = await login(email, password, role);
-
-      if (success) {
+      const result = await login(email, password, role);
+      if (result.success) {
         toast.success("Welcome back!");
 
         // navigate based on role
@@ -35,7 +56,7 @@ export default function Login() {
           navigate("/receiver");
         }
       } else {
-        toast.error("Invalid email or password");
+        toast.error(result.message || "Invalid email or password");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -128,11 +149,15 @@ export default function Login() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors(prev => ({ ...prev, email: validateEmail(e.target.value) }));
+              }}
               placeholder="you@example.com"
               required
-              className="border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all"
+              className={`border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all ${errors.email ? 'border-red-500' : ''}`}
             />
+            {errors.email && <p className="text-[10px] text-red-500 font-medium pl-1">{errors.email}</p>}
           </div>
           <div className="group space-y-2">
             <Label
@@ -145,11 +170,15 @@ export default function Login() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrors(prev => ({ ...prev, password: validatePassword(e.target.value) }));
+              }}
               placeholder="••••••••"
               required
-              className="border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all"
+              className={`border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 transition-all ${errors.password ? 'border-red-500' : ''}`}
             />
+            {errors.password && <p className="text-[10px] text-red-500 font-medium pl-1">{errors.password}</p>}
           </div>
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Package, Truck, MapPin, Home, LogIn, UserPlus, LogOut, User } from "lucide-react";
 import { motion } from "framer-motion";
@@ -11,6 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import UserProfileModal from "./UserProfileModal";
+import { UserData } from "@/lib/parcelStore";
 
 const publicNavItems = [
   { path: "/", label: "Home", icon: Home },
@@ -32,6 +35,17 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [showProfile, setShowProfile] = useState(false);
+
+  // Convert auth user to UserData format for the modal
+  const userData: UserData | null = user ? {
+    id: user.id,
+    name: user.name,
+    rating: 5.0,
+    totalTrips: 0,
+    profilePhoto: (user as any).profilePhoto,
+    bio: (user as any).bio
+  } : null;
 
   const navItems = user
     ? [...publicNavItems, ...roleNavItems[user.role]]
@@ -105,6 +119,10 @@ export default function Navbar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border/40" />
+                <DropdownMenuItem onClick={() => setShowProfile(true)} className="rounded-xl focus:bg-secondary focus:text-secondary-foreground cursor-pointer py-2.5">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>View Profile</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-xl focus:bg-secondary focus:text-secondary-foreground cursor-pointer py-2.5">
                   <Link to="/profile" className="flex items-center w-full">
                     <User className="mr-2 h-4 w-4" />
@@ -135,6 +153,11 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      <UserProfileModal 
+        user={userData} 
+        isOpen={showProfile} 
+        onClose={() => setShowProfile(false)} 
+      />
     </nav>
   );
 }

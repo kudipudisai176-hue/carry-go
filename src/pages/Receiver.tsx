@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/StatusBadge";
 import RouteMap from "@/components/RouteMap";
-import { getParcelsByPhone, markReceived, type Parcel } from "@/lib/parcelStore";
+import { getParcelsByPhone, markReceived, type Parcel, type UserData } from "@/lib/parcelStore";
 import { toast } from "sonner";
 import { useSocket } from "@/lib/socketContext";
+import UserProfileModal from "@/components/UserProfileModal";
 
 export default function Receiver() {
   const socket = useSocket();
@@ -15,18 +16,20 @@ export default function Receiver() {
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [searched, setSearched] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [profileUser, setProfileUser] = useState<UserData | null>(null);
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
-      const data = await getParcelsByPhone(phone);
+      const formattedPhone = phone.startsWith("+91") ? phone : `+91${phone}`;
+      const data = await getParcelsByPhone(formattedPhone);
       setParcels(data);
       setSearched(true);
 
       // Join socket room for this phone number
       if (socket) {
-        socket.emit("join", phone);
-        console.log("Receiver joined room for phone:", phone);
+        socket.emit("join", formattedPhone);
+        console.log("Receiver joined room for phone:", formattedPhone);
       }
     } catch (err) {
       toast.error("Failed to fetch parcels");
@@ -54,6 +57,7 @@ export default function Receiver() {
       handleSearch();
 
       const statusMsgs: Record<string, string> = {
+        'requested': '📦 A traveller has requested your parcel. Order is being confirmed!',
         'accepted': 'Your parcel has been accepted and is ready for pickup!',
         'in-transit': '🚚 Your parcel is now in transit!',
         'delivered': '📦 Your parcel has been delivered! Please confirm receipt.',
@@ -81,16 +85,21 @@ export default function Receiver() {
         <p className="text-muted-foreground">Enter your phone number to see your parcels</p>
       </div>
 
-      <form onSubmit={handleSearch} className="mb-8 flex gap-3 rounded-2xl border border-border bg-card p-5 shadow-card">
-        <Input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Enter your phone number"
-          className="flex-1"
-          required
-        />
-        <Button type="submit" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-          <Search className="mr-2 h-4 w-4" /> Track
+      <form onSubmit={handleSearch} className="mb-8 flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-card sm:flex-row sm:items-center">
+        <div className="flex flex-1 gap-0 overflow-hidden rounded-md border border-border transition-all focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/20">
+          <div className="flex items-center justify-center bg-muted px-4 text-sm font-bold text-muted-foreground border-r border-border">
+            +91
+          </div>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            placeholder="10-digit phone number"
+            className="border-0 bg-background transition-all focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            required
+          />
+        </div>
+        <Button type="submit" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 px-8">
+          <Search className="mr-2 h-4 w-4" /> Track Parcel
         </Button>
       </form>
 
@@ -112,10 +121,30 @@ export default function Receiver() {
             <div className="flex cursor-pointer items-start justify-between" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
               <div>
                 <p className="font-heading font-semibold text-foreground">{p.fromLocation} → {p.toLocation}</p>
-                <p className="text-sm text-muted-foreground">From: {p.senderName} · {p.weight}kg</p>
+                <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
+                  <span>From: </span>
+                  <button 
+                    className="text-orange-500 hover:underline cursor-pointer font-medium"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (p.senderData) setProfileUser(p.senderData);
+                    }}
+                  >
+                    {p.senderName}
+                  </button>
+                  <span>· {p.weight}kg</span>
+                </div>
                 {p.travellerName && (
                   <div className="mt-2 flex items-center gap-4">
-                    <p className="text-xs text-secondary font-medium">Carried by: {p.travellerName}</p>
+                    <button 
+                      className="text-xs text-secondary font-medium hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (p.travellerData) setProfileUser(p.travellerData);
+                      }}
+                    >
+                      Carried by: {p.travellerName}
+                    </button>
                   </div>
                 )}
               </div>
@@ -178,6 +207,12 @@ export default function Receiver() {
           </motion.div>
         ))}
       </AnimatePresence>
+      {/* Profile Modal */}
+      <UserProfileModal 
+        user={profileUser} 
+        isOpen={!!profileUser} 
+        onClose={() => setProfileUser(null)} 
+      />
     </div>
   );
 }

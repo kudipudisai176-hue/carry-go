@@ -11,8 +11,9 @@ import StatusBadge from "@/components/StatusBadge";
 import RouteMap3D from "@/components/RouteMap3D";
 import {
   searchParcels, updateParcelStatus,
-  requestParcel, getMyDeliveries, type Parcel
+  requestParcel, getMyDeliveries, type Parcel, type UserData
 } from "@/lib/parcelStore";
+import UserProfileModal from "@/components/UserProfileModal";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authContext";
 import { useSocket } from "@/lib/socketContext";
@@ -29,6 +30,7 @@ export default function Traveller() {
   const [myDeliveries, setMyDeliveries] = useState<Parcel[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"deliveries" | "search">("deliveries");
+  const [profileUser, setProfileUser] = useState<UserData | null>(null);
 
   const [isConfirming, setIsConfirming] = useState(false);
   const [pickupOtp, setPickupOtp] = useState("");
@@ -56,11 +58,21 @@ export default function Traveller() {
   // Socket listener — parcel accepted by sender
   useEffect(() => {
     if (!socket) return;
-    const handler = ({ parcel }: { parcel: any; otp: string }) => {
-      toast.success(`✅ Sender accepted your request! Check your deliveries.`, { duration: 6000 });
-      sendBrowserNotification('CarryGo – Request Accepted! 🎉', `Your request for parcel has been accepted. OTP is ready.`);
-      loadMyDeliveries();
+    const handler = async ({ parcel }: { parcel: any; otp: string }) => {
+      toast.success(`✅ Sender accepted your request! Starting journey...`, { duration: 6000 });
+      sendBrowserNotification('CarryGo – Request Accepted! 🎉', `Your request for parcel has been accepted. Starting transit.`);
+      
+      const deliveries = await getMyDeliveries();
+      setMyDeliveries(deliveries);
       setActiveTab('deliveries');
+
+      // Auto-start transit if it's the right parcel
+      const freshParcel = deliveries.find(d => d.id === (parcel._id || parcel.id));
+      if (freshParcel) {
+          setDetailParcel(freshParcel);
+          // Fixed OTP from user: "1234"
+          await handleStartTransit(freshParcel.id, freshParcel, "1234");
+      }
     };
     socket.on('parcel-accepted', handler);
     return () => { socket.off('parcel-accepted', handler); };
@@ -116,14 +128,15 @@ export default function Traveller() {
     }
   };
 
-  const handleStartTransit = async (id: string, parcel: Parcel) => {
-    if (!pickupOtp || pickupOtp.length !== 4) {
+  const handleStartTransit = async (id: string, parcel: Parcel, autoOtp?: string) => {
+    const finalOtp = autoOtp || pickupOtp;
+    if (!finalOtp || finalOtp.length !== 4) {
       toast.error("Please enter the 4-digit OTP provided by the Sender");
       return;
     }
     setIsConfirming(true);
     try {
-      const res = await updateParcelStatus(id, "in-transit", undefined, pickupOtp);
+      const res = await updateParcelStatus(id, "in-transit", undefined, finalOtp);
       if (res) {
         toast.success("🚀 Transit started! Tracking is now live for all parties.", { duration: 5000 });
         sendBrowserNotification('CarryGo – Transit Started! 🚚', `Parcel ${res.description?.slice(0, 20) || 'package'} is now in transit.`);
@@ -527,10 +540,16 @@ export default function Traveller() {
                               {/* Sender Info */}
                               <div className="rounded-xl bg-muted/30 p-3 space-y-2">
                                 <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Sender</p>
-                                <div className="flex items-center gap-2 text-sm">
+                                <button 
+                                  className="flex items-center gap-2 text-sm hover:underline cursor-pointer text-left"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (p.senderData) setProfileUser(p.senderData);
+                                  }}
+                                >
                                   <User className="h-4 w-4 text-orange-500" />
                                   <span className="font-semibold text-foreground">{p.senderName}</span>
-                                </div>
+                                </button>
                                 {p.senderPhone && (
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <Phone className="h-3 w-3" />
@@ -687,11 +706,20 @@ export default function Traveller() {
                                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                 <p className="font-heading font-semibold text-foreground">{p.toLocation}</p>
                               </div>
-                              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-2">
-                                <span className="flex items-center gap-1"><Weight className="h-3 w-3" /> {p.weight}kg</span>
-                                <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {p.itemCount} items</span>
-                                <span>To: {p.receiverName}</span>
-                              </div>
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-2">
+                                  <span className="flex items-center gap-1"><Weight className="h-3 w-3" /> {p.weight}kg</span>
+                                  <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> {p.itemCount} items</span>
+                                  <button 
+                                    className="text-orange-500 hover:underline cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (p.senderData) setProfileUser(p.senderData);
+                                    }}
+                                  >
+                                    Sender: {p.senderName}
+                                  </button>
+                                  <span>To: {p.receiverName}</span>
+                                </div>
                               <div className="flex flex-wrap items-center gap-2">
                                 {p.vehicleType && (
                                   <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary">
@@ -741,6 +769,12 @@ export default function Traveller() {
           </>
         )}
       </AnimatePresence>
+      {/* Profile Modal */}
+      <UserProfileModal 
+        user={profileUser} 
+        isOpen={!!profileUser} 
+        onClose={() => setProfileUser(null)} 
+      />
     </div>
   );
 }

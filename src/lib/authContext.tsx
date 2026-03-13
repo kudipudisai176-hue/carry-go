@@ -19,7 +19,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role?: UserRole) => Promise<boolean>;
+  login: (email: string, password: string, role?: UserRole) => Promise<{ success: boolean; message?: string }>;
   signup: (params: {
     name: string,
     email: string,
@@ -30,9 +30,10 @@ interface AuthContextType {
     adharNumber?: string,
     adharPhoto?: string,
     livePhoto?: string,
-  }) => Promise<boolean>;
+  }) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateUser: (data: { name?: string, profilePhoto?: string }) => Promise<boolean>;
+  setUser: (u: User | null) => void;
   isLoading: boolean;
 }
 
@@ -72,10 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...data.user,
         token: data.token
       });
-      return true;
+      return { success: true };
     } catch (err: any) {
-      console.error("Signup error:", err.response?.data || err.message);
-      return false;
+      const message = err.response?.data?.message || err.message;
+      console.error("Signup error:", message);
+      return { success: false, message };
     }
   };
 
@@ -87,10 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...data.user,
         token: data.token
       });
-      return true;
+      return { success: true };
     } catch (err: any) {
-      console.error("Login error:", err.response?.data || err.message);
-      return false;
+      const message = err.response?.data?.message || err.message;
+      console.error("Login error:", message);
+      return { success: false, message };
     }
   };
 
@@ -112,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, updateUser, isLoading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateUser, setUser: persist, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
